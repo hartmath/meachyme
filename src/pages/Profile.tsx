@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
+import { testBadge } from "@/utils/appBadge";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -264,6 +265,40 @@ export default function Profile() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Badge Test Section */}
+      <div className="px-4 py-3 mt-4 bg-card rounded-lg mx-4">
+        <h3 className="text-sm font-medium text-foreground mb-3">Badge Test</h3>
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => testBadge(1)}
+            className="text-xs"
+          >
+            Test Badge 1
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => testBadge(5)}
+            className="text-xs"
+          >
+            Test Badge 5
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => testBadge(0)}
+            className="text-xs"
+          >
+            Clear Badge
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Check your browser tab title and favicon for badge updates
+        </p>
       </div>
     </div>
   );
