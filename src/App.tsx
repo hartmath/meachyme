@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useWebPushNotifications } from "@/hooks/useWebPushNotifications";
+import { NotificationBadgeManager } from "@/components/NotificationBadgeManager";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chats from "./pages/Chats";
@@ -44,6 +45,7 @@ function AppContent() {
   
   return (
     <div className="min-h-screen bg-background">
+      <NotificationBadgeManager />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
