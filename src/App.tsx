@@ -26,7 +26,6 @@ import Notifications from "./pages/settings/Notifications";
 import Help from "./pages/settings/Help";
 import Location from "./pages/settings/Location";
 import Storage from "./pages/settings/Storage";
-import WebRTCTest from "./pages/WebRTCTest";
 import Welcome from "./pages/onboarding/Welcome";
 import RoleSelection from "./pages/onboarding/RoleSelection";
 import ProfileSetup from "./pages/onboarding/ProfileSetup";
@@ -151,11 +150,6 @@ function AppContent() {
         <Route path="/settings/storage" element={
           <ProtectedRoute>
             <Storage />
-          </ProtectedRoute>
-        } />
-        <Route path="/webrtc-test" element={
-          <ProtectedRoute>
-            <WebRTCTest />
           </ProtectedRoute>
         } />
         

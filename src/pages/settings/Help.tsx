@@ -113,7 +113,7 @@ export default function Help() {
       title: "Email Support",
       description: "Get help via email within 24 hours",
       icon: <Mail className="h-5 w-5" />,
-      action: "support@collabeventspace.com"
+      action: "meachymein@gmail.com"
     },
     {
       title: "Community Forum",

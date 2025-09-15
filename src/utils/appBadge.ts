@@ -200,11 +200,6 @@ export const initializeBadge = () => {
   }
 };
 
-// Test function to manually set badge (for debugging)
-export const testBadge = (count: number) => {
-  console.log('🧪 Testing badge with count:', count);
-  updateAppBadge(count);
-};
 
 // Aggressive badge update for app wrappers
 export const forceBadgeUpdate = (count: number) => {
