@@ -2,18 +2,66 @@ import { Search, Plus, MessageCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { SearchModal } from "@/components/SearchModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { ChatContextMenu, useChatContextMenu } from "@/components/ChatContextMenu";
 import { Loading } from "@/components/Loading";
 
 export default function Chats() {
   const navigate = useNavigate();
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const { contextMenu, openContextMenu, closeContextMenu } = useChatContextMenu();
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Long press handlers
+  const handleMouseDown = (e: React.MouseEvent, chat: any) => {
+    longPressTimer.current = setTimeout(() => {
+      openContextMenu(e, chat.id, chat.name, chat.is_pinned, chat.is_blocked);
+    }, 500); // 500ms long press
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, chat: any) => {
+    longPressTimer.current = setTimeout(() => {
+      openContextMenu(e, chat.id, chat.name, chat.is_pinned, chat.is_blocked);
+    }, 500); // 500ms long press
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleCall = (type: 'voice' | 'video') => {
+    if (contextMenu) {
+      navigate(`/call/${contextMenu.chatId}?type=${type}`);
+    }
+  };
+
+  const handleDelete = () => {
+    // The context menu will handle the deletion
+    // This is just for any additional cleanup if needed
+  };
 
   // Fetch conversations from Supabase
   const { data: conversations, isLoading } = useQuery({
@@ -80,12 +128,35 @@ export default function Chats() {
             }),
             unread: isCurrentUserSender ? 0 : (message.is_read ? 0 : 1),
             avatar: partner.full_name ? partner.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U',
-            avatar_url: partner.avatar_url
+            avatar_url: partner.avatar_url,
+            is_pinned: false, // Default values - will be updated from user preferences
+            is_blocked: false
           });
         }
       });
 
-      return Array.from(conversationMap.values());
+      // Get user preferences for pinned and blocked conversations
+      const { data: preferences } = await supabase
+        .from('user_preferences')
+        .select('conversation_id, is_pinned, is_blocked')
+        .eq('user_id', user.id);
+
+      // Apply preferences to conversations
+      const conversationsWithPreferences = Array.from(conversationMap.values()).map(conv => {
+        const preference = preferences?.find(p => p.conversation_id === conv.id);
+        return {
+          ...conv,
+          is_pinned: preference?.is_pinned || false,
+          is_blocked: preference?.is_blocked || false
+        };
+      });
+
+      // Sort conversations: pinned first, then by last message time
+      return conversationsWithPreferences.sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
     }
   });
 
@@ -163,7 +234,12 @@ export default function Chats() {
             <div
               key={chat.id}
               onClick={() => navigate(`/chat/${chat.id}`)}
-              className="flex items-center p-3 hover:bg-accent cursor-pointer border-b border-border/50"
+              onMouseDown={(e) => handleMouseDown(e, chat)}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              onTouchStart={(e) => handleTouchStart(e, chat)}
+              onTouchEnd={handleTouchEnd}
+              className="flex items-center p-3 hover:bg-accent cursor-pointer border-b border-border/50 select-none"
             >
               {/* Avatar */}
               <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold mr-3 text-sm">
@@ -181,7 +257,15 @@ export default function Chats() {
               {/* Chat Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-foreground truncate text-sm">{chat.name}</h3>
+                  <div className="flex items-center space-x-1">
+                    <h3 className="font-medium text-foreground truncate text-sm">{chat.name}</h3>
+                    {chat.is_pinned && (
+                      <div className="w-1 h-1 bg-primary rounded-full" title="Pinned chat"></div>
+                    )}
+                    {chat.is_blocked && (
+                      <div className="w-1 h-1 bg-destructive rounded-full" title="Blocked chat"></div>
+                    )}
+                  </div>
                   <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
                 </div>
                 <p className="text-xs text-primary font-medium mb-0.5">{chat.role}</p>
@@ -255,6 +339,19 @@ export default function Chats() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ChatContextMenu
+          chatId={contextMenu.chatId}
+          chatName={contextMenu.chatName}
+          isPinned={contextMenu.isPinned}
+          isBlocked={contextMenu.isBlocked}
+          onClose={closeContextMenu}
+          onCall={handleCall}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }
