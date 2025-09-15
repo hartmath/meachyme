@@ -62,14 +62,6 @@ export default function Events() {
         <h1 className="text-lg font-bold">Events</h1>
         <div className="flex items-center space-x-2">
           <Button
-            onClick={() => navigate("/create-event")}
-            size="sm"
-            className="h-8 px-3 text-xs"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Create
-          </Button>
-          <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsSearchModalOpen(true)}

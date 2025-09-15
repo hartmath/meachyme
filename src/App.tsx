@@ -30,7 +30,6 @@ import WebRTCTest from "./pages/WebRTCTest";
 import Welcome from "./pages/onboarding/Welcome";
 import RoleSelection from "./pages/onboarding/RoleSelection";
 import ProfileSetup from "./pages/onboarding/ProfileSetup";
-import CreateEvent from "./pages/CreateEvent";
 import GroupChatList from "./pages/GroupChatList";
 import CreateGroup from "./pages/CreateGroup";
 import GroupChatDetail from "./pages/GroupChatDetail";
@@ -120,11 +119,6 @@ function AppContent() {
         <Route path="/group/:id/settings" element={
           <ProtectedRoute>
             <GroupSettings />
-          </ProtectedRoute>
-        } />
-        <Route path="/create-event" element={
-          <ProtectedRoute>
-            <CreateEvent />
           </ProtectedRoute>
         } />
         <Route path="/create-status" element={

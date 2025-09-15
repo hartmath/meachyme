@@ -27,6 +27,30 @@ export function StatusInteractions({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
+  // Fetch comments for this status
+  const { data: comments } = useQuery({
+    queryKey: ['status-comments', statusId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('status_comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          profiles!status_comments_user_id_fkey (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status_id', statusId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: showComments
+  });
+
   // Fetch interaction counts
   const { data: interactions } = useQuery({
     queryKey: ['status-interactions', statusId],
@@ -149,6 +173,7 @@ export function StatusInteractions({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['status-interactions', statusId] });
       queryClient.invalidateQueries({ queryKey: ['status-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['status-comments', statusId] });
       setCommentText("");
       toast({
         title: "Comment added!",
@@ -239,9 +264,45 @@ export function StatusInteractions({
             </Button>
           </div>
           
-          {/* Comments List - You can expand this to show actual comments */}
-          <div className="text-xs text-muted-foreground">
-            Comments feature is ready! Comments will appear here.
+          {/* Comments List */}
+          <div className="space-y-3">
+            {comments && comments.length > 0 ? (
+              comments.map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-2">
+                  <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-semibold">
+                    {comment.profiles?.avatar_url ? (
+                      <img 
+                        src={comment.profiles.avatar_url} 
+                        alt={comment.profiles.full_name || 'User'} 
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      (comment.profiles?.full_name || 'U').charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-muted rounded-lg p-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {comment.profiles?.full_name || 'Unknown User'}
+                      </p>
+                      <p className="text-sm text-foreground mt-1">
+                        {comment.content}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(comment.created_at).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-muted-foreground text-center py-2">
+                No comments yet. Be the first to comment!
+              </div>
+            )}
           </div>
         </div>
       )}
