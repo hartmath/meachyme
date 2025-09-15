@@ -353,8 +353,8 @@ export default function Feed() {
                 />
                 
                 <div className="flex items-center justify-end text-xs text-muted-foreground mt-2">
-                  <Eye className="h-3 w-3 mr-1" />
-                  <span>{post.view_count} views</span>
+                    <Eye className="h-3 w-3 mr-1" />
+                    <span>{post.view_count} views</span>
                 </div>
               </article>
             ))
