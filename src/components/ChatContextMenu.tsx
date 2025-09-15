@@ -10,6 +10,7 @@ interface ChatContextMenuProps {
   chatName: string;
   isPinned?: boolean;
   isBlocked?: boolean;
+  position: { x: number; y: number };
   onClose: () => void;
   onCall?: (type: 'voice' | 'video') => void;
   onDelete?: () => void;
@@ -20,13 +21,13 @@ export function ChatContextMenu({
   chatName, 
   isPinned = false, 
   isBlocked = false,
+  position,
   onClose,
   onCall,
   onDelete 
 }: ChatContextMenuProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Pin/Unpin mutation

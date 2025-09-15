@@ -347,6 +347,7 @@ export default function Chats() {
           chatName={contextMenu.chatName}
           isPinned={contextMenu.isPinned}
           isBlocked={contextMenu.isBlocked}
+          position={contextMenu.position}
           onClose={closeContextMenu}
           onCall={handleCall}
           onDelete={handleDelete}
