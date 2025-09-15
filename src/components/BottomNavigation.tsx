@@ -15,6 +15,9 @@ export function BottomNavigation() {
   const location = useLocation();
   const badgeCounts = useNotificationBadge();
 
+  // Debug logging
+  console.log('BottomNavigation badge counts:', badgeCounts);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
       <div className="flex items-center justify-around h-14 px-2">

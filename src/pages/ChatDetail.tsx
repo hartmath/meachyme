@@ -149,6 +149,33 @@ export default function ChatDetail() {
     }
   }, [messages, messagesEndRef]);
 
+  // Mark messages as read when chat is opened
+  useEffect(() => {
+    if (!currentUserId || !id || !messages) return;
+
+    const markMessagesAsRead = async () => {
+      try {
+        // Mark all unread messages from this chat partner as read
+        const { error } = await supabase
+          .from('direct_messages')
+          .update({ is_read: true })
+          .eq('recipient_id', currentUserId)
+          .eq('sender_id', id)
+          .eq('is_read', false);
+
+        if (error) throw error;
+
+        // Invalidate badge counts to update immediately
+        queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    };
+
+    markMessagesAsRead();
+  }, [currentUserId, id, messages, queryClient]);
+
   // Mutation to upload chat attachment
   const uploadAttachmentMutation = useMutation({
     mutationFn: async ({ file, recipientId }: { file: File; recipientId: string }) => {

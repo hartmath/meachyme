@@ -56,14 +56,20 @@ export const useNotificationBadge = () => {
         groupMessages: groupMessages?.length || 0
       };
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: true
+    refetchInterval: 10000, // Refetch every 10 seconds (more frequent)
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   });
 
   // Update badge counts when data changes
   useEffect(() => {
     if (unreadCounts) {
       const totalUnread = unreadCounts.directMessages + unreadCounts.groupMessages;
+      console.log('Badge counts updated:', {
+        directMessages: unreadCounts.directMessages,
+        groupMessages: unreadCounts.groupMessages,
+        totalUnread
+      });
       setBadgeCounts({
         totalUnread,
         directMessages: unreadCounts.directMessages,

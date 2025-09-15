@@ -249,6 +249,36 @@ export default function GroupChatDetail() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mark group messages as read when chat is opened
+  useEffect(() => {
+    if (!id || !messages) return;
+
+    const markGroupMessagesAsRead = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Mark all unread group messages as read
+        const { error } = await supabase
+          .from('group_messages')
+          .update({ is_read: true })
+          .eq('group_id', id)
+          .neq('sender_id', user.id)
+          .eq('is_read', false);
+
+        if (error) throw error;
+
+        // Invalidate badge counts to update immediately
+        queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
+        queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+      } catch (error) {
+        console.error('Error marking group messages as read:', error);
+      }
+    };
+
+    markGroupMessagesAsRead();
+  }, [id, messages, queryClient]);
+
   const handleSendMessage = () => {
     if (newMessage.trim() && !sendMessageMutation.isPending) {
       sendMessageMutation.mutate(newMessage);
