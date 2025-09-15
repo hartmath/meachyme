@@ -166,8 +166,12 @@ export default function ChatDetail() {
         if (error) throw error;
 
         // Invalidate badge counts to update immediately
+        console.log('🔄 Invalidating badge queries after marking messages as read');
         queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        
+        // Force refetch badge counts immediately
+        queryClient.refetchQueries({ queryKey: ['unread-message-counts'] });
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }

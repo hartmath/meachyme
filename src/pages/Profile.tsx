@@ -21,11 +21,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
 import { testBadge } from "@/utils/appBadge";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const queryClient = useQueryClient();
 
   // Fetch current user profile
   const { data: profile, isLoading, error } = useQuery({
@@ -294,6 +296,18 @@ export default function Profile() {
             className="text-xs"
           >
             Clear Badge
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => {
+              console.log('🔄 Manual badge refresh');
+              queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
+              queryClient.refetchQueries({ queryKey: ['unread-message-counts'] });
+            }}
+            className="text-xs"
+          >
+            Refresh Badge
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">

@@ -269,8 +269,12 @@ export default function GroupChatDetail() {
         if (error) throw error;
 
         // Invalidate badge counts to update immediately
+        console.log('🔄 Invalidating badge queries after marking group messages as read');
         queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
         queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+        
+        // Force refetch badge counts immediately
+        queryClient.refetchQueries({ queryKey: ['unread-message-counts'] });
       } catch (error) {
         console.error('Error marking group messages as read:', error);
       }

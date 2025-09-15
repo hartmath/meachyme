@@ -1,14 +1,26 @@
 import { useEffect } from 'react';
 import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 import { updateAppBadge, initializeBadge } from '@/utils/appBadge';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function NotificationBadgeManager() {
   const badgeCounts = useNotificationBadge();
+  const queryClient = useQueryClient();
 
   // Initialize badge on mount
   useEffect(() => {
     initializeBadge();
   }, []);
+
+  // Periodically refresh badge counts to ensure they stay updated
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Periodic badge refresh');
+      queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   // Update all badge systems when badge counts change
   useEffect(() => {
