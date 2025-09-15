@@ -46,14 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Clear the new user flag after checking
           localStorage.removeItem("is_new_user");
           
-          toast({
-            title: "Welcome back!",
-            description: "You have been signed in successfully.",
-          });
+          // Only show welcome message if this is a fresh sign-in (not a page refresh)
+          const hasShownWelcome = sessionStorage.getItem("welcome_shown");
+          if (!hasShownWelcome) {
+            toast({
+              title: "Welcome back!",
+              description: "You have been signed in successfully.",
+            });
+            sessionStorage.setItem("welcome_shown", "true");
+          }
         } else if (event === 'SIGNED_OUT') {
           setNeedsOnboarding(false);
           // Clear onboarding status on logout
           localStorage.removeItem("onboarding_completed");
+          // Clear welcome flag so it can show again on next login
+          sessionStorage.removeItem("welcome_shown");
           toast({
             title: "Signed out",
             description: "You have been signed out successfully.",
