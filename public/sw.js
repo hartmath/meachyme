@@ -95,13 +95,43 @@ self.addEventListener('sync', (event) => {
 
 // Message event - handle messages from main thread
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SET_BADGE') {
+  console.log('Service worker received message:', event.data);
+  
+  if (event.data && event.data.type === 'BADGE_UPDATE') {
+    const count = event.data.count || 0;
+    console.log('Updating badge count to:', count);
+    
     // Update app badge count
+    if ('setAppBadge' in navigator) {
+      if (count > 0) {
+        navigator.setAppBadge(count);
+        console.log('Badge set to:', count);
+      } else {
+        navigator.clearAppBadge();
+        console.log('Badge cleared');
+      }
+    } else {
+      console.log('Badge API not available in service worker');
+    }
+    
+    // Also try to update all clients
+    event.waitUntil(
+      clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'BADGE_UPDATE',
+            count: count
+          });
+        });
+      })
+    );
+  } else if (event.data && event.data.type === 'SET_BADGE') {
+    // Legacy support
     if ('setAppBadge' in navigator) {
       navigator.setAppBadge(event.data.count);
     }
   } else if (event.data && event.data.type === 'CLEAR_BADGE') {
-    // Clear app badge
+    // Legacy support
     if ('clearAppBadge' in navigator) {
       navigator.clearAppBadge();
     }

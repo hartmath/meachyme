@@ -41,7 +41,67 @@ export const updateAppBadge = (count: number) => {
     console.log('❌ No parent window to notify');
   }
 
-  // Method 5: Store in localStorage for persistence
+  // Method 5: Try to communicate with top window (for iframe scenarios)
+  if (window.top !== window) {
+    try {
+      window.top.postMessage({
+        type: 'BADGE_UPDATE',
+        count: count
+      }, '*');
+      console.log('✅ Top window notified with count:', count);
+    } catch (error) {
+      console.log('❌ Could not send badge update to top window:', error);
+    }
+  }
+
+  // Method 6: Try to communicate with opener window (for popup scenarios)
+  if (window.opener) {
+    try {
+      window.opener.postMessage({
+        type: 'BADGE_UPDATE',
+        count: count
+      }, '*');
+      console.log('✅ Opener window notified with count:', count);
+    } catch (error) {
+      console.log('❌ Could not send badge update to opener window:', error);
+    }
+  }
+
+  // Method 7: Use BroadcastChannel for cross-tab communication
+  try {
+    const channel = new BroadcastChannel('badge-updates');
+    channel.postMessage({
+      type: 'BADGE_UPDATE',
+      count: count
+    });
+    console.log('✅ BroadcastChannel notified with count:', count);
+  } catch (error) {
+    console.log('❌ BroadcastChannel not supported:', error);
+  }
+
+  // Method 8: Try to update meta tags for app wrappers
+  try {
+    let metaBadge = document.querySelector('meta[name="badge-count"]');
+    if (!metaBadge) {
+      metaBadge = document.createElement('meta');
+      metaBadge.setAttribute('name', 'badge-count');
+      document.head.appendChild(metaBadge);
+    }
+    metaBadge.setAttribute('content', count.toString());
+    console.log('✅ Meta badge updated:', count);
+  } catch (error) {
+    console.log('❌ Could not update meta badge:', error);
+  }
+
+  // Method 9: Try to update data attributes on body
+  try {
+    document.body.setAttribute('data-badge-count', count.toString());
+    console.log('✅ Body data attribute updated:', count);
+  } catch (error) {
+    console.log('❌ Could not update body data attribute:', error);
+  }
+
+  // Method 10: Store in localStorage for persistence
   localStorage.setItem('app_badge_count', count.toString());
   console.log('✅ Badge count stored in localStorage:', count);
 };
@@ -144,4 +204,26 @@ export const initializeBadge = () => {
 export const testBadge = (count: number) => {
   console.log('🧪 Testing badge with count:', count);
   updateAppBadge(count);
+};
+
+// Aggressive badge update for app wrappers
+export const forceBadgeUpdate = (count: number) => {
+  console.log('🚀 Force badge update with count:', count);
+  
+  // Try all methods multiple times
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      updateAppBadge(count);
+    }, i * 100);
+  }
+  
+  // Also try to trigger a page visibility change
+  if (document.hidden) {
+    document.dispatchEvent(new Event('visibilitychange'));
+  }
+  
+  // Try to focus the window
+  if (window.focus) {
+    window.focus();
+  }
 };

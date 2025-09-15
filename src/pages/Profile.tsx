@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
-import { testBadge } from "@/utils/appBadge";
+import { testBadge, forceBadgeUpdate } from "@/utils/appBadge";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Profile() {
@@ -308,6 +308,14 @@ export default function Profile() {
             className="text-xs"
           >
             Refresh Badge
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => forceBadgeUpdate(3)}
+            className="text-xs"
+          >
+            Force Badge 3
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNotificationBadge } from '@/hooks/useNotificationBadge';
-import { updateAppBadge, initializeBadge } from '@/utils/appBadge';
+import { updateAppBadge, initializeBadge, forceBadgeUpdate } from '@/utils/appBadge';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function NotificationBadgeManager() {
@@ -30,6 +30,9 @@ export function NotificationBadgeManager() {
     
     // Update app badge using multiple methods
     updateAppBadge(totalUnread);
+    
+    // Force badge update for app wrappers
+    forceBadgeUpdate(totalUnread);
     
     // Force a page title update (sometimes needed for web app wrappers)
     if (totalUnread > 0) {
