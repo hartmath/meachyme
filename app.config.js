@@ -1,0 +1,42 @@
+module.exports = {
+  expo: {
+    name: "Chyme",
+    slug: "chyme",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#3B82F6"
+    },
+    assetBundlePatterns: [
+      "**/*"
+    ],
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.mea.chyme"
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#3B82F6"
+      },
+      package: "com.mea.chyme",
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+      bundler: "metro"
+    },
+    scheme: "chyme",
+    extra: {
+      eas: {
+        projectId: "48f6fe32-f766-4075-be8f-a9f79fe800be"
+      }
+    }
+  }
+};

@@ -13,6 +13,7 @@ import { GroupCallInterface } from "@/components/GroupCallInterface";
 import { GroupCallType } from "@/utils/groupWebRTC";
 import { sendGroupMessageNotification } from "@/utils/pushNotifications";
 import { MessageReactions } from "@/components/MessageReactions";
+import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
 
 export default function GroupChatDetail() {
@@ -572,6 +573,8 @@ export default function GroupChatDetail() {
                         Download file
                       </a>
                     </div>
+                  ) : message.message_type === 'voice' && message.attachment_url ? (
+                    <VoiceMessagePlayer audioUrl={message.attachment_url} />
                   ) : (
                     <p className="text-sm">{message.content}</p>
                   )}
