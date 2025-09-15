@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
+import { StatusInteractions } from "@/components/StatusInteractions";
 import { useEffect } from "react";
 
 export default function Feed() {
@@ -344,31 +345,16 @@ export default function Feed() {
                 </div>
 
                 {/* Post Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground h-8 px-2"
-                    >
-                      <Heart className="h-3 w-3 mr-1" />
-                      <span className="text-xs">0</span>
-                    </Button>
-                    
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 px-2">
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      <span className="text-xs">0</span>
-                    </Button>
-                    
-                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 px-2">
-                      <Share className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Eye className="h-3 w-3 mr-1" />
-                    <span>{post.view_count} views</span>
-                  </div>
+                <StatusInteractions 
+                  statusId={post.id}
+                  initialLikes={0}
+                  initialComments={0}
+                  initialShares={0}
+                />
+                
+                <div className="flex items-center justify-end text-xs text-muted-foreground mt-2">
+                  <Eye className="h-3 w-3 mr-1" />
+                  <span>{post.view_count} views</span>
                 </div>
               </article>
             ))

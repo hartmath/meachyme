@@ -503,6 +503,99 @@ export type Database = {
           },
         ]
       }
+      status_likes: {
+        Row: {
+          id: string
+          status_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          status_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          status_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_likes_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "status_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_comments: {
+        Row: {
+          id: string
+          status_id: string
+          user_id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          status_id: string
+          user_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          status_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_comments_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "status_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_shares: {
+        Row: {
+          id: string
+          status_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          status_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          status_id?: string
+          user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_shares_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "status_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           id: string
