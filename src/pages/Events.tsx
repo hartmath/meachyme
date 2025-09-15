@@ -1,4 +1,4 @@
-import { BarChart3, ExternalLink, Search, Plus, Calendar, MapPin, Users, Eye } from "lucide-react";
+import { BarChart3, ExternalLink, Search, Calendar, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { SearchModal } from "@/components/SearchModal";
@@ -159,13 +159,9 @@ export default function Events() {
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No events yet</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Create your first event to get started with event management.
+            <p className="text-muted-foreground text-center">
+              Your events will appear here when available.
             </p>
-            <Button onClick={() => navigate("/create-event")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
           </div>
         )}
       </div>
