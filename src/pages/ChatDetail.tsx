@@ -267,18 +267,21 @@ export default function ChatDetail() {
 
   const handleVoiceMessageSend = async (audioBlob: Blob) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) throw new Error('Not authenticated or missing recipient ID');
+
       // Upload voice message to Supabase Storage
       const fileExt = 'wav';
-      const fileName = `voice-${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${id}/voice-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('voice-messages')
+        .from('chat-attachments')
         .upload(fileName, audioBlob);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('voice-messages')
+        .from('chat-attachments')
         .getPublicUrl(fileName);
 
       // Send message with voice attachment

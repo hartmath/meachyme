@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MoreVertical, Users, Phone, Video, Image, Paperclip } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Users, Phone, Video, Image, Paperclip, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { GroupCallInterface } from "@/components/GroupCallInterface";
 import { GroupCallType } from "@/utils/groupWebRTC";
 import { sendGroupMessageNotification } from "@/utils/pushNotifications";
 import { MessageReactions } from "@/components/MessageReactions";
+import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
 
 export default function GroupChatDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function GroupChatDetail() {
   
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [activeGroupCall, setActiveGroupCall] = useState<{
     callId: string;
     groupId: string;
@@ -280,6 +282,43 @@ export default function GroupChatDetail() {
     fileInputRef.current?.click();
   };
 
+  const handleVoiceMessageSend = async (audioBlob: Blob) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) throw new Error('Not authenticated or missing group ID');
+
+      // Upload voice message to Supabase Storage
+      const fileExt = 'wav';
+      const fileName = `${user.id}/${id}/voice-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, audioBlob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+
+      // Send message with voice attachment
+      sendMessageMutation.mutate({ 
+        content: "Voice message", 
+        attachmentUrl: publicUrl,
+        messageType: 'voice'
+      });
+
+      setShowVoiceRecorder(false);
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      toast({
+        title: "Failed to send voice message",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Start group call mutation
   const startGroupCallMutation = useMutation({
     mutationFn: async (callType: GroupCallType) => {
@@ -514,6 +553,16 @@ export default function GroupChatDetail() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Voice Message Recorder */}
+      {showVoiceRecorder && (
+        <div className="p-3 border-t border-border bg-card">
+          <VoiceMessageRecorder
+            onSend={handleVoiceMessageSend}
+            onCancel={() => setShowVoiceRecorder(false)}
+          />
+        </div>
+      )}
+
       {/* Message Input */}
       <div className="p-3 border-t border-border bg-card">
         <div className="flex items-center space-x-2">
@@ -524,6 +573,15 @@ export default function GroupChatDetail() {
             className="h-8 w-8 flex-shrink-0"
           >
             <Paperclip className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setShowVoiceRecorder(true)}
+            className="h-8 w-8 flex-shrink-0"
+          >
+            <Mic className="h-4 w-4" />
           </Button>
           
           <Input
