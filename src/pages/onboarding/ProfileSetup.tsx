@@ -18,6 +18,12 @@ export default function ProfileSetup() {
   const location = useLocation();
   const { completeOnboarding, user } = useAuth();
   const { toast } = useToast();
+
+  // Redirect if user is not authenticated
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
   
   const selectedRole = location.state?.role || "organizer";
   const roleLabels = {
@@ -42,13 +48,16 @@ export default function ProfileSetup() {
       // Upload avatar if provided
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, avatarFile);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Avatar upload error:', uploadError);
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('avatars')
@@ -68,9 +77,14 @@ export default function ProfileSetup() {
           avatar_url: avatarUrl,
           onboarding_completed: true,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile save error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
