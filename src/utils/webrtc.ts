@@ -234,7 +234,11 @@ export class WebRTCManager {
       };
 
       try {
+        console.log('Requesting user media with constraints:', constraints);
         this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Got local stream:', this.localStream);
+        
+        // Call the callback immediately when we get the local stream
         this.onLocalStreamCallback?.(this.localStream);
 
         // Add tracks to peer connection
@@ -243,6 +247,8 @@ export class WebRTCManager {
             this.peerConnection.addTrack(track, this.localStream);
           }
         });
+        
+        console.log('Added tracks to peer connection');
       } catch (mediaError: any) {
         console.error('Media access error:', mediaError);
         if (mediaError.name === 'NotAllowedError') {
@@ -257,11 +263,13 @@ export class WebRTCManager {
       }
 
       // Create and send offer
+      console.log('Creating offer...');
       const offer = await this.peerConnection!.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: callType === 'video'
       });
       await this.peerConnection!.setLocalDescription(offer);
+      console.log('Offer created and set as local description');
 
       this.sendSignalingMessage({
         type: 'offer',
@@ -337,7 +345,11 @@ export class WebRTCManager {
       };
 
       try {
+        console.log('Answering call - requesting user media with constraints:', constraints);
         this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Answer call - got local stream:', this.localStream);
+        
+        // Call the callback immediately when we get the local stream
         this.onLocalStreamCallback?.(this.localStream);
 
         // Add tracks to peer connection
@@ -346,8 +358,10 @@ export class WebRTCManager {
             this.peerConnection.addTrack(track, this.localStream);
           }
         });
+        
+        console.log('Answer call - added tracks to peer connection');
       } catch (mediaError: any) {
-        console.error('Media access error:', mediaError);
+        console.error('Answer call - media access error:', mediaError);
         if (mediaError.name === 'NotAllowedError') {
           throw new Error('Camera/microphone access denied. Please allow access and try again.');
         } else if (mediaError.name === 'NotFoundError') {
