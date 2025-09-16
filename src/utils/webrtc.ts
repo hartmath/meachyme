@@ -191,6 +191,25 @@ export class WebRTCManager {
         console.error('Database error:', callError);
         throw new Error('Failed to create call record');
       }
+
+      // Send push notification to recipient
+      try {
+        await fetch('/api/send-call-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipientId,
+            senderName: user.user_metadata?.full_name || user.email || 'Someone',
+            callType,
+            callId: callData.id
+          })
+        });
+      } catch (notificationError) {
+        console.error('Failed to send call notification:', notificationError);
+        // Don't throw error - call should still work without notification
+      }
       
       this.callId = callData.id;
 
