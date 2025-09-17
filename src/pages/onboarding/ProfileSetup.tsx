@@ -51,7 +51,7 @@ export default function ProfileSetup() {
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('chat-attachments')
+          .from('avatars')
           .upload(fileName, avatarFile);
 
         if (uploadError) {
@@ -60,7 +60,7 @@ export default function ProfileSetup() {
         }
 
         const { data: { publicUrl } } = supabase.storage
-          .from('chat-attachments')
+          .from('avatars')
           .getPublicUrl(fileName);
         
         avatarUrl = publicUrl;

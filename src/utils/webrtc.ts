@@ -1,180 +1,397 @@
-// WebRTC utilities for MEA Meet
+import { supabase } from "@/integrations/supabase/client";
+
+export type CallType = 'voice' | 'video';
+export type CallStatus = 'calling' | 'answered' | 'declined' | 'missed' | 'ended';
+
+export interface CallData {
+  id: string;
+  caller_id: string;
+  callee_id: string;
+  call_type: CallType;
+  status: CallStatus;
+  started_at?: string;
+}
+
 export interface SignalingMessage {
-  type: 'offer' | 'answer' | 'ice-candidate' | 'join' | 'leave';
+  type: 'offer' | 'answer' | 'ice-candidate' | 'call-end' | 'call-decline';
+  callId: string;
+  senderId: string;
   data?: any;
-  from?: string;
-  to?: string;
-  meetingId?: string;
 }
 
 export class WebRTCManager {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
-  private signalingChannel: BroadcastChannel | null = null;
-  private meetingId: string;
-  private userId: string;
+  private remoteStream: MediaStream | null = null;
+  private signalingChannel: any = null;
+  private callId: string | null = null;
+  private isInitiator = false;
 
-  constructor(meetingId: string, userId: string) {
-    this.meetingId = meetingId;
-    this.userId = userId;
-    this.initializeSignaling();
-  }
+  private onLocalStreamCallback?: (stream: MediaStream) => void;
+  private onRemoteStreamCallback?: (stream: MediaStream) => void;
+  private onCallEndCallback?: () => void;
+  private onErrorCallback?: (error: string) => void;
 
-  private initializeSignaling() {
-    // Use BroadcastChannel for local signaling (in a real app, use WebSocket)
-    this.signalingChannel = new BroadcastChannel(`mea-meet-${this.meetingId}`);
+  constructor() {
+    this.setupPeerConnection();
     
-    this.signalingChannel.onmessage = (event) => {
-      const message: SignalingMessage = event.data;
-      this.handleSignalingMessage(message);
-    };
+    // Bind methods to ensure proper 'this' context
+    this.initializeCall = this.initializeCall.bind(this);
+    this.answerCall = this.answerCall.bind(this);
+    this.endCall = this.endCall.bind(this);
+    this.setCallbacks = this.setCallbacks.bind(this);
+    this.setupPeerConnection = this.setupPeerConnection.bind(this);
   }
 
-  private handleSignalingMessage(message: SignalingMessage) {
-    if (message.from === this.userId) return; // Ignore own messages
-
-    switch (message.type) {
-      case 'offer':
-        this.handleOffer(message.data);
-        break;
-      case 'answer':
-        this.handleAnswer(message.data);
-        break;
-      case 'ice-candidate':
-        this.handleIceCandidate(message.data);
-        break;
-      case 'join':
-        this.handleUserJoin(message.from!);
-        break;
-      case 'leave':
-        this.handleUserLeave(message.from!);
-        break;
-    }
-  }
-
-  private async handleOffer(offer: RTCSessionDescriptionInit) {
-    if (!this.peerConnection) return;
-
-    await this.peerConnection.setRemoteDescription(offer);
-    const answer = await this.peerConnection.createAnswer();
-    await this.peerConnection.setLocalDescription(answer);
-
-    this.sendSignalingMessage({
-      type: 'answer',
-      data: answer,
-      to: 'all'
-    });
-  }
-
-  private async handleAnswer(answer: RTCSessionDescriptionInit) {
-    if (!this.peerConnection) return;
-    await this.peerConnection.setRemoteDescription(answer);
-  }
-
-  private async handleIceCandidate(candidate: RTCIceCandidateInit) {
-    if (!this.peerConnection) return;
-    await this.peerConnection.addIceCandidate(candidate);
-  }
-
-  private handleUserJoin(userId: string) {
-    console.log(`User ${userId} joined the meeting`);
-  }
-
-  private handleUserLeave(userId: string) {
-    console.log(`User ${userId} left the meeting`);
-  }
-
-  private sendSignalingMessage(message: SignalingMessage) {
-    if (!this.signalingChannel) return;
-
-    this.signalingChannel.postMessage({
-      ...message,
-      from: this.userId,
-      meetingId: this.meetingId
-    });
-  }
-
-  async initializePeerConnection() {
-    this.peerConnection = new RTCPeerConnection({
+  private setupPeerConnection() {
+    // STUN servers for NAT traversal
+    const configuration: RTCConfiguration = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
       ]
-    });
+    };
+
+    this.peerConnection = new RTCPeerConnection(configuration);
 
     // Handle ICE candidates
-    this.peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
+    this.peerConnection.onicecandidate = async (event) => {
+      if (event.candidate && this.callId) {
+        const { data: { user } } = await supabase.auth.getUser();
         this.sendSignalingMessage({
           type: 'ice-candidate',
-          data: event.candidate,
-          to: 'all'
+          callId: this.callId,
+          senderId: user?.id || '',
+          data: event.candidate
         });
       }
     };
 
     // Handle remote stream
     this.peerConnection.ontrack = (event) => {
-      const remoteVideo = document.getElementById('remoteVideo') as HTMLVideoElement;
-      if (remoteVideo && event.streams[0]) {
-        remoteVideo.srcObject = event.streams[0];
-      }
+      this.remoteStream = event.streams[0];
+      this.onRemoteStreamCallback?.(this.remoteStream);
     };
 
-    return this.peerConnection;
+    // Handle connection state changes
+    this.peerConnection.onconnectionstatechange = () => {
+      console.log('Connection state:', this.peerConnection?.connectionState);
+      if (this.peerConnection?.connectionState === 'failed' || 
+          this.peerConnection?.connectionState === 'disconnected') {
+        this.endCall();
+      }
+    };
   }
 
-  async startLocalStream() {
+  setCallbacks(callbacks: {
+    onLocalStream?: (stream: MediaStream) => void;
+    onRemoteStream?: (stream: MediaStream) => void;
+    onCallEnd?: () => void;
+    onError?: (error: string) => void;
+  }) {
+    this.onLocalStreamCallback = callbacks.onLocalStream;
+    this.onRemoteStreamCallback = callbacks.onRemoteStream;
+    this.onCallEndCallback = callbacks.onCallEnd;
+    this.onErrorCallback = callbacks.onError;
+  }
+
+  // Public method to create peer connection if needed
+  createPeerConnection(): void {
+    if (!this.peerConnection) {
+      this.setupPeerConnection();
+    }
+  }
+
+  async initializeCall(recipientId: string, callType: CallType): Promise<string> {
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
+      this.isInitiator = true;
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Create call record in database
+      const { data: callData, error: callError } = await supabase
+        .from('calls')
+        .insert({
+          caller_id: user.id,
+          callee_id: recipientId,
+          call_type: callType,
+          status: 'calling'
+        })
+        .select()
+        .single();
+
+      if (callError) throw callError;
+      
+      this.callId = callData.id;
+
+      // Ensure peer connection is set up
+      this.createPeerConnection();
+
+      // Set up signaling channel
+      await this.setupSignalingChannel();
+
+      // Get user media
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video: callType === 'video'
+      };
+
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.onLocalStreamCallback?.(this.localStream);
 
       // Add tracks to peer connection
-      if (this.peerConnection) {
-        this.localStream.getTracks().forEach(track => {
-          this.peerConnection!.addTrack(track, this.localStream!);
-        });
-      }
+      this.localStream.getTracks().forEach(track => {
+        if (this.peerConnection && this.localStream) {
+          this.peerConnection.addTrack(track, this.localStream);
+        }
+      });
 
-      return this.localStream;
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
+      // Create and send offer
+      const offer = await this.peerConnection!.createOffer();
+      await this.peerConnection!.setLocalDescription(offer);
+
+      this.sendSignalingMessage({
+        type: 'offer',
+        callId: this.callId,
+        senderId: user.id,
+        data: offer
+      });
+
+      return this.callId;
+    } catch (error: any) {
+      this.onErrorCallback?.(error.message);
       throw error;
     }
   }
 
-  async createOffer() {
-    if (!this.peerConnection) return;
+  async answerCall(callId: string): Promise<void> {
+    try {
+      this.callId = callId;
+      this.isInitiator = false;
 
-    const offer = await this.peerConnection.createOffer();
-    await this.peerConnection.setLocalDescription(offer);
+      // Ensure peer connection is set up
+      this.createPeerConnection();
 
-    this.sendSignalingMessage({
-      type: 'offer',
-      data: offer,
-      to: 'all'
-    });
+      // Update call status in database
+      await supabase
+        .from('calls')
+        .update({ status: 'answered' })
+        .eq('id', callId);
 
-    return offer;
+      // Set up signaling channel
+      await this.setupSignalingChannel();
+
+      // Get call info to determine if it's video or audio
+      const { data: callInfo } = await supabase
+        .from('calls')
+        .select('call_type')
+        .eq('id', callId)
+        .single();
+
+      // Get user media
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video: callInfo?.call_type === 'video'
+      };
+
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.onLocalStreamCallback?.(this.localStream);
+
+      // Add tracks to peer connection
+      this.localStream.getTracks().forEach(track => {
+        if (this.peerConnection && this.localStream) {
+          this.peerConnection.addTrack(track, this.localStream);
+        }
+      });
+
+    } catch (error: any) {
+      this.onErrorCallback?.(error.message);
+      throw error;
+    }
   }
 
-  async joinMeeting() {
-    this.sendSignalingMessage({
-      type: 'join',
-      to: 'all'
-    });
+  async declineCall(callId: string): Promise<void> {
+    try {
+      // Update call status in database
+      await supabase
+        .from('calls')
+        .update({ 
+          status: 'declined',
+          ended_at: new Date().toISOString()
+        })
+        .eq('id', callId);
+
+      // Send decline signal
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        this.sendSignalingMessage({
+          type: 'call-decline',
+          callId: callId,
+          senderId: user.id
+        });
+      }
+
+      this.cleanup();
+    } catch (error: any) {
+      this.onErrorCallback?.(error.message);
+    }
   }
 
-  async leaveMeeting() {
-    this.sendSignalingMessage({
-      type: 'leave',
-      to: 'all'
-    });
+  async endCall(): Promise<void> {
+    try {
+      if (this.callId) {
+        // Calculate duration
+        const { data: callData } = await supabase
+          .from('calls')
+          .select('started_at')
+          .eq('id', this.callId)
+          .single();
 
-    this.cleanup();
+        const duration = callData?.started_at 
+          ? Math.floor((new Date().getTime() - new Date(callData.started_at).getTime()) / 1000)
+          : 0;
+
+        // Update call status in database
+        await supabase
+          .from('calls')
+          .update({ 
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            duration_seconds: duration
+          })
+          .eq('id', this.callId);
+
+        // Send end signal
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          this.sendSignalingMessage({
+            type: 'call-end',
+            callId: this.callId,
+            senderId: user.id
+          });
+        }
+      }
+
+      this.cleanup();
+      this.onCallEndCallback?.();
+    } catch (error: any) {
+      this.onErrorCallback?.(error.message);
+    }
+  }
+
+  private async setupSignalingChannel() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !this.callId) return;
+
+    // Create a unique channel for this call
+    this.signalingChannel = supabase.channel(`call-${this.callId}`)
+      .on('broadcast', { event: 'signaling' }, (payload) => {
+        this.handleSignalingMessage(payload.payload as SignalingMessage);
+      })
+      .subscribe();
+  }
+
+  private async handleSignalingMessage(message: SignalingMessage) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || message.senderId === user.id) return; // Ignore own messages
+
+      switch (message.type) {
+        case 'offer':
+          if (!this.isInitiator) {
+            await this.peerConnection!.setRemoteDescription(message.data);
+            const answer = await this.peerConnection!.createAnswer();
+            await this.peerConnection!.setLocalDescription(answer);
+            
+            this.sendSignalingMessage({
+              type: 'answer',
+              callId: this.callId!,
+              senderId: user.id,
+              data: answer
+            });
+          }
+          break;
+
+        case 'answer':
+          if (this.isInitiator) {
+            await this.peerConnection!.setRemoteDescription(message.data);
+            
+            // Mark call as answered and update started_at
+            await supabase
+              .from('calls')
+              .update({ 
+                status: 'answered',
+                started_at: new Date().toISOString()
+              })
+              .eq('id', this.callId!);
+          }
+          break;
+
+        case 'ice-candidate':
+          await this.peerConnection!.addIceCandidate(message.data);
+          break;
+
+        case 'call-decline':
+        case 'call-end':
+          this.cleanup();
+          this.onCallEndCallback?.();
+          break;
+      }
+    } catch (error: any) {
+      console.error('Error handling signaling message:', error);
+      this.onErrorCallback?.(error.message);
+    }
+  }
+
+  private sendSignalingMessage(message: SignalingMessage) {
+    if (this.signalingChannel) {
+      this.signalingChannel.send({
+        type: 'broadcast',
+        event: 'signaling',
+        payload: message
+      });
+    }
+  }
+
+  private cleanup() {
+    // Close peer connection
+    if (this.peerConnection) {
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+
+    // Stop local stream
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => track.stop());
+      this.localStream = null;
+    }
+
+    // Clear remote stream
+    this.remoteStream = null;
+
+    // Clean up signaling channel
+    if (this.signalingChannel) {
+      supabase.removeChannel(this.signalingChannel);
+      this.signalingChannel = null;
+    }
+
+    // Reset call state
+    this.callId = null;
+    this.isInitiator = false;
+  }
+
+  // Utility methods
+  toggleAudio() {
+    if (this.localStream) {
+      const audioTrack = this.localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        return audioTrack.enabled;
+      }
+    }
+    return false;
   }
 
   toggleVideo() {
@@ -188,91 +405,11 @@ export class WebRTCManager {
     return false;
   }
 
-  toggleAudio() {
-    if (this.localStream) {
-      const audioTrack = this.localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        return audioTrack.enabled;
-      }
-    }
-    return false;
+  getLocalStream() {
+    return this.localStream;
   }
 
-  async toggleScreenShare() {
-    if (!this.localStream) return false;
-
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
-      });
-
-      const videoTrack = screenStream.getVideoTracks()[0];
-      const sender = this.peerConnection?.getSenders().find(
-        s => s.track?.kind === 'video'
-      );
-
-      if (sender && videoTrack) {
-        await sender.replaceTrack(videoTrack);
-      }
-
-      // Handle screen share end
-      videoTrack.onended = () => {
-        const cameraTrack = this.localStream?.getVideoTracks()[0];
-        if (cameraTrack && sender) {
-          sender.replaceTrack(cameraTrack);
-        }
-      };
-
-      return true;
-    } catch (error) {
-      console.error('Error sharing screen:', error);
-      return false;
-    }
-  }
-
-  private cleanup() {
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
-      this.localStream = null;
-    }
-
-    if (this.peerConnection) {
-      this.peerConnection.close();
-      this.peerConnection = null;
-    }
-
-    if (this.signalingChannel) {
-      this.signalingChannel.close();
-      this.signalingChannel = null;
-    }
+  getRemoteStream() {
+    return this.remoteStream;
   }
 }
-
-// Utility functions
-export const generateMeetingId = (): string => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
-
-export const generateUserId = (): string => {
-  return 'user_' + Math.random().toString(36).substring(2, 15);
-};
-
-export const formatMeetingTime = (date: Date): string => {
-  const now = new Date();
-  const diff = date.getTime() - now.getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (days > 0) {
-    return `In ${days} day${days > 1 ? 's' : ''}`;
-  } else if (hours > 0) {
-    return `In ${hours} hour${hours > 1 ? 's' : ''}`;
-  } else if (minutes > 0) {
-    return `In ${minutes} minute${minutes > 1 ? 's' : ''}`;
-  } else {
-    return 'Starting now';
-  }
-};

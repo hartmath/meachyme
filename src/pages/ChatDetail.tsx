@@ -232,7 +232,7 @@ export default function ChatDetail() {
 
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text' }: { content: string; attachmentUrl?: string; messageType?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Missing user or recipient');
 
@@ -243,8 +243,7 @@ export default function ChatDetail() {
           recipient_id: id,
           content: content,
           message_type: messageType,
-          attachment_url: attachmentUrl,
-          attachment_metadata: attachmentMetadata
+          attachment_url: attachmentUrl
         });
 
       if (error) throw error;
@@ -297,7 +296,7 @@ export default function ChatDetail() {
     }
   };
 
-  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
+  const handleVoiceMessageSend = async (audioBlob: Blob) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or missing recipient ID');
@@ -316,12 +315,11 @@ export default function ChatDetail() {
         .from('chat-attachments')
         .getPublicUrl(fileName);
 
-      // Send message with voice attachment and duration
+      // Send message with voice attachment
       sendMessageMutation.mutate({ 
         content: "Voice message", 
         attachmentUrl: publicUrl,
-        messageType: 'voice',
-        attachmentMetadata: { duration: duration }
+        messageType: 'voice'
       });
 
       setShowVoiceRecorder(false);
@@ -386,8 +384,14 @@ export default function ChatDetail() {
     });
   };
 
-  const handleMenuAction = (action: 'mute' | 'block' | 'report') => {
+  const handleMenuAction = (action: 'voice' | 'video' | 'mute' | 'block' | 'report') => {
     switch (action) {
+      case 'voice':
+        navigate(`/call/${id}?type=voice`);
+        break;
+      case 'video':
+        navigate(`/call/${id}?type=video`);
+        break;
       case 'mute':
         toast({
           title: "Muted",
@@ -502,11 +506,9 @@ export default function ChatDetail() {
                          {message.content}
                        </a>
                      </div>
-                  ) : message.message_type === 'voice' && message.attachment_url ? (
-                    <VoiceMessagePlayer 
-                      audioUrl={message.attachment_url}
-                      duration={message.attachment_metadata?.duration} />
-                  ) : (
+                   ) : message.message_type === 'voice' && message.attachment_url ? (
+                     <VoiceMessagePlayer audioUrl={message.attachment_url} />
+                   ) : (
                      <p className="text-sm leading-relaxed">{message.content}</p>
                    )}
                    <div className="flex items-center justify-between mt-1">

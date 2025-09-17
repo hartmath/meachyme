@@ -5,25 +5,93 @@ const CACHE_NAME = 'chyme-v1';
 const urlsToCache = [
   '/',
   '/favicon.ico',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/manifest.json',
+  '/mea-logo.jpg'
 ];
 
 // Install event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        return cache.addAll(urlsToCache).catch((error) => {
+          console.error('Failed to cache some resources:', error);
+          // Continue with installation even if some resources fail to cache
+        });
+      })
+      .then(() => {
+        // Force activation of the new service worker
+        return self.skipWaiting();
+      })
+  );
+});
+
+// Activate event
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
+    })
   );
 });
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip requests to external domains
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+        // Return cached version if available
+        if (response) {
+          return response;
+        }
+
+        // Fetch from network with error handling
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Don't cache non-successful responses
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
+            }
+
+            // Clone the response for caching
+            const responseToCache = networkResponse.clone();
+
+            // Cache the response
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.error('Fetch failed:', error);
+            // Return a fallback response for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match('/') || new Response('Offline', { status: 503 });
+            }
+            throw error;
+          });
       })
   );
 });

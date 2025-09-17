@@ -56,7 +56,6 @@ export type Database = {
       direct_messages: {
         Row: {
           attachment_url: string | null
-          attachment_metadata: Json | null
           content: string
           created_at: string | null
           deleted_by_recipient: boolean | null
@@ -70,7 +69,6 @@ export type Database = {
         }
         Insert: {
           attachment_url?: string | null
-          attachment_metadata?: Json | null
           content: string
           created_at?: string | null
           deleted_by_recipient?: boolean | null
@@ -84,7 +82,6 @@ export type Database = {
         }
         Update: {
           attachment_url?: string | null
-          attachment_metadata?: Json | null
           content?: string
           created_at?: string | null
           deleted_by_recipient?: boolean | null
@@ -659,13 +656,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       group_messages: {
@@ -676,8 +666,6 @@ export type Database = {
           content: string
           message_type: string
           attachment_url: string | null
-          attachment_metadata: Json | null
-          is_read: boolean
           created_at: string
           updated_at: string
         }
@@ -688,8 +676,6 @@ export type Database = {
           content: string
           message_type?: string
           attachment_url?: string | null
-          attachment_metadata?: Json | null
-          is_read?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -700,8 +686,6 @@ export type Database = {
           content?: string
           message_type?: string
           attachment_url?: string | null
-          attachment_metadata?: Json | null
-          is_read?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -712,13 +696,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "groups"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "group_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
           },
         ]
       }

@@ -13,8 +13,24 @@ export const useWebPushNotifications = () => {
         // Register service worker
         if ('serviceWorker' in navigator) {
           try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+              scope: '/'
+            });
             console.log('Service Worker registered:', registration);
+            
+            // Handle service worker updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New service worker is available
+                    console.log('New service worker available');
+                    // Optionally show a notification to the user
+                  }
+                });
+              }
+            });
           } catch (error) {
             console.error('Service Worker registration failed:', error);
           }
