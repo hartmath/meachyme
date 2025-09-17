@@ -37,6 +37,26 @@ import Test from "./pages/Test";
 const queryClient = new QueryClient();
 
 function AppContent() {
+  // Add error boundary for route-level errors
+  const [routeError, setRouteError] = useState<Error | null>(null);
+
+  // Reset error when route changes
+  useEffect(() => {
+    setRouteError(null);
+  }, [window.location.pathname]);
+
+  if (routeError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <p className="text-muted-foreground mb-4">{routeError.message}</p>
+          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Routes>
@@ -48,8 +68,10 @@ function AppContent() {
         {/* Protected routes */}
         <Route path="/chats" element={
           <ProtectedRoute>
-            <Chats />
-            <BottomNavigation />
+            <>
+              <Chats />
+              <BottomNavigation />
+            </>
           </ProtectedRoute>
         } />
         <Route path="/chat/:id" element={
@@ -173,20 +195,56 @@ function AppContent() {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const isOnline = useNetworkStatus();
+
+  // Configure React Query for better error handling and retries
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: (failureCount, error) => {
+          // Don't retry if we're offline
+          if (!isOnline) return false;
+          // Retry up to 3 times
+          return failureCount < 3;
+        },
+        retryDelay: 1000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        cacheTime: 10 * 60 * 1000, // 10 minutes
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+        onError: (error) => {
+          console.error('Query error:', error);
+        },
+      },
+      mutations: {
+        retry: (failureCount, error) => {
+          if (!isOnline) return false;
+          return failureCount < 3;
+        },
+        retryDelay: 1000,
+        onError: (error) => {
+          console.error('Mutation error:', error);
+        },
+      },
+    },
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

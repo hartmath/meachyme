@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      shared_event_links: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_link: string | null;
+          title: string;
+          description: string | null;
+          event_type: string;
+          event_date: string | null;
+          event_location: string | null;
+          event_category: string | null;
+          max_attendees: number | null;
+          is_public: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_link?: string | null;
+          title: string;
+          description?: string | null;
+          event_type?: string;
+          event_date?: string | null;
+          event_location?: string | null;
+          event_category?: string | null;
+          max_attendees?: number | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          event_link?: string | null;
+          title?: string;
+          description?: string | null;
+          event_type?: string;
+          event_date?: string | null;
+          event_location?: string | null;
+          event_category?: string | null;
+          max_attendees?: number | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       calls: {
         Row: {
           call_type: string

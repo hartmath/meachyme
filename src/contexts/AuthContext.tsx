@@ -23,6 +23,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const { toast } = useToast();
 
+  // Initialize and check persisted state
+  useEffect(() => {
+    const initializeState = async () => {
+      try {
+        // Check for existing session first
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        if (existingSession) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          
+          // Check onboarding status
+          try {
+            const onboardingCompleted = localStorage.getItem("onboarding_completed");
+            if (!onboardingCompleted) {
+              setNeedsOnboarding(true);
+            }
+          } catch (error) {
+            console.warn('Could not check onboarding status:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth state:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeState();
+
   useEffect(() => {
     // Set up auth state listener FIRST
     try {

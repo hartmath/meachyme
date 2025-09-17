@@ -1,7 +1,8 @@
-import { ExternalLink, Search, Calendar, Plus, Link, Share2, Clock } from "lucide-react";
+import { ExternalLink, Search, Calendar, Plus, Link, Share2, Clock, MapPin, Users, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { SearchModal } from "@/components/SearchModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,9 +15,15 @@ import { useToast } from "@/hooks/use-toast";
 export default function Events() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isPostingEvent, setIsPostingEvent] = useState(false);
+  const [eventType, setEventType] = useState<'shared_link' | 'created_event'>('shared_link');
   const [eventLink, setEventLink] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventCategory, setEventCategory] = useState("");
+  const [maxAttendees, setMaxAttendees] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -27,7 +34,15 @@ export default function Events() {
     queryFn: async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return [];
+        if (!user) {
+          toast({
+            title: "Not authenticated",
+            description: "Please sign in to view events.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+          return [];
+        }
 
         const { data: links, error } = await supabase
           .from('shared_event_links')
@@ -42,16 +57,27 @@ export default function Events() {
 
         if (error) {
           console.error('Error fetching event links:', error);
+          toast({
+            title: "Error loading events",
+            description: error.message,
+            variant: "destructive",
+          });
           return [];
         }
         return links || [];
       } catch (error) {
         console.error('Error in event links query:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load events. Please try again.",
+          variant: "destructive",
+        });
         return [];
       }
     },
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Post event mutation
@@ -367,10 +393,21 @@ export default function Events() {
               <Button
                 onClick={handlePostEvent}
                 disabled={postEventMutation.isPending}
-                className="flex-1"
+                className="flex-1 relative"
               >
-                <Share2 className="h-4 w-4 mr-2" />
-                {postEventMutation.isPending ? "Posting..." : "Post Event"}
+                {postEventMutation.isPending ? (
+                  <>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                    </div>
+                    <span className="opacity-0">Post Event</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Post Event
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"

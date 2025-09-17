@@ -8,9 +8,69 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Create a storage object with memory fallback and error recovery
+class SafeStorage {
+  private memoryStorage: Map<string, string>;
+  private storageAvailable: boolean;
+
+  constructor() {
+    this.memoryStorage = new Map();
+    this.storageAvailable = this.checkStorageAvailability();
+  }
+
+  private checkStorageAvailability(): boolean {
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      return true;
+    } catch (error) {
+      console.warn('localStorage not available, using memory storage');
+      return false;
+    }
+  }
+
+  getItem(key: string): string | null {
+    try {
+      if (this.storageAvailable) {
+        return localStorage.getItem(key);
+      }
+      return this.memoryStorage.get(key) || null;
+    } catch (error) {
+      console.warn(`Error getting item ${key}:`, error);
+      return this.memoryStorage.get(key) || null;
+    }
+  }
+
+  setItem(key: string, value: string): void {
+    try {
+      if (this.storageAvailable) {
+        localStorage.setItem(key, value);
+      }
+      this.memoryStorage.set(key, value);
+    } catch (error) {
+      console.warn(`Error setting item ${key}:`, error);
+      this.memoryStorage.set(key, value);
+    }
+  }
+
+  removeItem(key: string): void {
+    try {
+      if (this.storageAvailable) {
+        localStorage.removeItem(key);
+      }
+      this.memoryStorage.delete(key);
+    } catch (error) {
+      console.warn(`Error removing item ${key}:`, error);
+      this.memoryStorage.delete(key);
+    }
+  }
+}
+
+const storage = new SafeStorage();
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage,
     persistSession: true,
     autoRefreshToken: true,
   }
