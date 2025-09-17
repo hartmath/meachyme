@@ -9,6 +9,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useWebPushNotifications } from "@/hooks/useWebPushNotifications";
 import { NotificationBadgeManager } from "@/components/NotificationBadgeManager";
+import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chats from "./pages/Chats";
@@ -40,10 +42,24 @@ const queryClient = new QueryClient();
 function AppContent() {
   // Initialize web push notifications
   useWebPushNotifications();
+  const navigate = useNavigate();
+  
+  const handleIncomingCallAnswer = (callId: string, callType: 'voice' | 'video', callerName: string, callerAvatar?: string) => {
+    navigate(`/call/${callId}?type=${callType}&incoming=true&callerName=${encodeURIComponent(callerName)}&callerAvatar=${encodeURIComponent(callerAvatar || '')}`);
+  };
+
+  const handleIncomingCallDecline = (callId: string) => {
+    // Call declined, stay on current page
+    console.log('Call declined:', callId);
+  };
   
   return (
     <div className="min-h-screen bg-background">
       <NotificationBadgeManager />
+      <IncomingCallModal 
+        onAnswer={handleIncomingCallAnswer}
+        onDecline={handleIncomingCallDecline}
+      />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { CallInterface } from "@/components/CallInterface";
-import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
@@ -13,8 +12,10 @@ export default function Call() {
   const navigate = useNavigate();
   
   const callType = (searchParams.get('type') || 'voice') as CallType;
-  const incomingCallId = searchParams.get('callId');
-  const isIncoming = !!incomingCallId;
+  const incomingCallId = searchParams.get('callId') || recipientId;
+  const isIncoming = searchParams.get('incoming') === 'true';
+  const callerName = searchParams.get('callerName') || '';
+  const callerAvatar = searchParams.get('callerAvatar') || '';
   
   const [activeCall, setActiveCall] = useState<{
     callId: string | null;
@@ -44,7 +45,18 @@ export default function Call() {
   });
 
   useEffect(() => {
-    if (recipientProfile) {
+    if (isIncoming && callerName) {
+      // For incoming calls, use the caller info from URL params
+      setActiveCall({
+        callId: incomingCallId,
+        recipientId: recipientId || null,
+        recipientName: callerName,
+        recipientAvatar: callerAvatar || undefined,
+        callType,
+        isIncoming
+      });
+    } else if (recipientProfile) {
+      // For outgoing calls, use the recipient profile
       setActiveCall({
         callId: incomingCallId,
         recipientId: recipientId || null,
@@ -54,22 +66,8 @@ export default function Call() {
         isIncoming
       });
     }
-  }, [recipientProfile, recipientId, callType, incomingCallId, isIncoming]);
+  }, [recipientProfile, recipientId, callType, incomingCallId, isIncoming, callerName, callerAvatar]);
 
-  const handleIncomingCallAnswer = (callId: string, callType: CallType, callerName: string, callerAvatar?: string) => {
-    setActiveCall({
-      callId,
-      recipientId: recipientId || null,
-      recipientName: callerName,
-      recipientAvatar: callerAvatar,
-      callType,
-      isIncoming: true
-    });
-  };
-
-  const handleIncomingCallDecline = () => {
-    navigate('/calls');
-  };
 
   const handleCallEnd = () => {
     navigate('/calls');
@@ -99,15 +97,7 @@ export default function Call() {
 
   return (
     <div className="min-h-screen">
-      {/* Incoming call modal - shown when waiting for incoming calls */}
-      {!activeCall && (
-        <IncomingCallModal 
-          onAnswer={handleIncomingCallAnswer}
-          onDecline={handleIncomingCallDecline}
-        />
-      )}
-      
-      {/* Active call interface */}
+      {/* Active call interface - only show when there's an active call */}
       {activeCall && (
         <CallInterface
           callId={activeCall.callId}

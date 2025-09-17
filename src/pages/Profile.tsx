@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
 import { useQueryClient } from "@tanstack/react-query";
+import { CallTest } from "@/components/CallTest";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -266,6 +267,11 @@ export default function Profile() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Call Test Section */}
+      <div className="px-4 py-3 mt-4">
+        <CallTest />
       </div>
 
     </div>

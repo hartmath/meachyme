@@ -1,96 +1,137 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-// Initialize Supabase client
-const supabaseUrl = 'https://behddityjbiumdcgattw.supabase.co';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Get EXPO_ACCESS_TOKEN from database or environment
-let EXPO_ACCESS_TOKEN = Deno.env.get("EXPO_ACCESS_TOKEN");
-
-// If not in environment, try to get from database
-if (!EXPO_ACCESS_TOKEN) {
-  try {
-    const { data, error } = await supabase
-      .from('app_config')
-      .select('value')
-      .eq('key', 'EXPO_ACCESS_TOKEN')
-      .single();
-    
-    if (!error && data) {
-      EXPO_ACCESS_TOKEN = data.value;
-    }
-  } catch (error) {
-    console.error('Error fetching EXPO_ACCESS_TOKEN from database:', error);
-  }
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-interface PushNotificationRequest {
-  to: string;
-  title: string;
-  body: string;
-  data?: Record<string, any>;
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+interface NotificationPayload {
+  to: string
+  title: string
+  body: string
+  data?: any
+  sound?: string
+  badge?: number
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { to, title, body, data }: PushNotificationRequest = await req.json();
+    const { recipientId, senderName, message, type, callType } = await req.json()
 
-    if (!EXPO_ACCESS_TOKEN) {
-      throw new Error("EXPO_ACCESS_TOKEN not configured");
+    // Get Expo access token from environment
+    const expoAccessToken = Deno.env.get('EXPO_ACCESS_TOKEN')
+    if (!expoAccessToken) {
+      throw new Error('EXPO_ACCESS_TOKEN not configured')
     }
 
-    // Send push notification via Expo Push API
-    const response = await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Accept-encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${EXPO_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        to,
-        title,
-        body,
-        data,
-        sound: "default",
-        badge: 1,
-      }),
-    });
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const result = await response.json();
-    console.log("Push notification sent:", result);
+    // Get recipient's push token
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('push_token, full_name')
+      .eq('user_id', recipientId)
+      .single()
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
+    if (profileError || !profile?.push_token) {
+      console.log('No push token found for user:', recipientId)
+      return new Response(
+        JSON.stringify({ success: false, message: 'No push token found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Prepare notification payload
+    let notification: NotificationPayload = {
+      to: profile.push_token,
+      sound: 'default',
+      badge: 1,
+    }
+
+    // Customize notification based on type
+    switch (type) {
+      case 'message':
+        notification.title = `New message from ${senderName}`
+        notification.body = message.length > 100 ? message.substring(0, 100) + '...' : message
+        notification.data = {
+          type: 'message',
+          senderId: recipientId,
+          chatId: recipientId
+        }
+        break
+
+      case 'group_message':
+        notification.title = `${senderName} in group`
+        notification.body = message.length > 100 ? message.substring(0, 100) + '...' : message
+        notification.data = {
+          type: 'group_message',
+          groupId: recipientId,
+          senderName
+        }
+        break
+
+      case 'call':
+        notification.title = `Incoming ${callType} call from ${senderName}`
+        notification.body = callType === 'video' ? 'Video call' : 'Voice call'
+        notification.sound = 'default'
+        notification.data = {
+          type: 'call',
+          callType,
+          callerId: recipientId,
+          callerName: senderName
+        }
+        break
+
+      default:
+        notification.title = 'New notification'
+        notification.body = message || 'You have a new notification'
+    }
+
+    // Send push notification via Expo
+    const expoResponse = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
+        'Accept': 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${expoAccessToken}`,
       },
-    });
-  } catch (error: any) {
-    console.error("Error sending push notification:", error);
+      body: JSON.stringify(notification),
+    })
+
+    const expoResult = await expoResponse.json()
+
+    if (expoResult.data && expoResult.data[0]?.status === 'ok') {
+      console.log('Push notification sent successfully:', expoResult)
+      return new Response(
+        JSON.stringify({ success: true, data: expoResult }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } else {
+      console.error('Failed to send push notification:', expoResult)
+      return new Response(
+        JSON.stringify({ success: false, error: expoResult }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+  } catch (error) {
+    console.error('Error in send-push-notification function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
+      JSON.stringify({ success: false, error: error.message }),
+      { 
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    );
+    )
   }
-};
-
-serve(handler);
+})

@@ -92,6 +92,7 @@ export default function GroupChatDetail() {
           content,
           message_type,
           attachment_url,
+          attachment_metadata,
           created_at,
           sender_id,
           profiles!group_messages_sender_id_fkey (
@@ -110,7 +111,7 @@ export default function GroupChatDetail() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
@@ -120,7 +121,9 @@ export default function GroupChatDetail() {
           group_id: id,
           sender_id: user.id,
           content: content.trim(),
-          message_type: 'text'
+          message_type: messageType,
+          attachment_url: attachmentUrl,
+          attachment_metadata: attachmentMetadata
         });
 
       if (error) throw error;
@@ -286,7 +289,7 @@ export default function GroupChatDetail() {
 
   const handleSendMessage = () => {
     if (newMessage.trim() && !sendMessageMutation.isPending) {
-      sendMessageMutation.mutate(newMessage);
+      sendMessageMutation.mutate({ content: newMessage });
     }
   };
 
@@ -317,7 +320,7 @@ export default function GroupChatDetail() {
     fileInputRef.current?.click();
   };
 
-  const handleVoiceMessageSend = async (audioBlob: Blob) => {
+  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or missing group ID');
@@ -336,11 +339,12 @@ export default function GroupChatDetail() {
         .from('chat-attachments')
         .getPublicUrl(fileName);
 
-      // Send message with voice attachment
+      // Send message with voice attachment and duration
       sendMessageMutation.mutate({ 
         content: "Voice message", 
         attachmentUrl: publicUrl,
-        messageType: 'voice'
+        messageType: 'voice',
+        attachmentMetadata: { duration: duration }
       });
 
       setShowVoiceRecorder(false);
@@ -574,7 +578,9 @@ export default function GroupChatDetail() {
                       </a>
                     </div>
                   ) : message.message_type === 'voice' && message.attachment_url ? (
-                    <VoiceMessagePlayer audioUrl={message.attachment_url} />
+                    <VoiceMessagePlayer 
+                      audioUrl={message.attachment_url}
+                      duration={message.attachment_metadata?.duration} />
                   ) : (
                     <p className="text-sm">{message.content}</p>
                   )}

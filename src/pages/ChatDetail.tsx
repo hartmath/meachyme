@@ -232,7 +232,7 @@ export default function ChatDetail() {
 
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, attachmentUrl, messageType = 'text' }: { content: string; attachmentUrl?: string; messageType?: string }) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Missing user or recipient');
 
@@ -243,7 +243,8 @@ export default function ChatDetail() {
           recipient_id: id,
           content: content,
           message_type: messageType,
-          attachment_url: attachmentUrl
+          attachment_url: attachmentUrl,
+          attachment_metadata: attachmentMetadata
         });
 
       if (error) throw error;
@@ -296,7 +297,7 @@ export default function ChatDetail() {
     }
   };
 
-  const handleVoiceMessageSend = async (audioBlob: Blob) => {
+  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or missing recipient ID');
@@ -315,11 +316,12 @@ export default function ChatDetail() {
         .from('chat-attachments')
         .getPublicUrl(fileName);
 
-      // Send message with voice attachment
+      // Send message with voice attachment and duration
       sendMessageMutation.mutate({ 
         content: "Voice message", 
         attachmentUrl: publicUrl,
-        messageType: 'voice'
+        messageType: 'voice',
+        attachmentMetadata: { duration: duration }
       });
 
       setShowVoiceRecorder(false);
@@ -506,9 +508,11 @@ export default function ChatDetail() {
                          {message.content}
                        </a>
                      </div>
-                   ) : message.message_type === 'voice' && message.attachment_url ? (
-                     <VoiceMessagePlayer audioUrl={message.attachment_url} />
-                   ) : (
+                  ) : message.message_type === 'voice' && message.attachment_url ? (
+                    <VoiceMessagePlayer 
+                      audioUrl={message.attachment_url}
+                      duration={message.attachment_metadata?.duration} />
+                  ) : (
                      <p className="text-sm leading-relaxed">{message.content}</p>
                    )}
                    <div className="flex items-center justify-between mt-1">

@@ -132,7 +132,20 @@ export function ChatContextMenu({
         title: "Chat deleted",
         description: `${chatName} has been deleted.`,
       });
+      
+      // Invalidate and refetch conversations immediately
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.refetchQueries({ queryKey: ['conversations'] });
+      
+      // Also invalidate unread message counts
+      queryClient.invalidateQueries({ queryKey: ['unread-message-counts'] });
+      
+      // Force immediate UI update
+      queryClient.setQueryData(['conversations'], (oldData: any) => {
+        if (!oldData) return [];
+        return oldData.filter((conv: any) => conv.id !== chatId);
+      });
+      
       onClose();
       onDelete?.();
     },

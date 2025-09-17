@@ -75,4 +75,3 @@ CREATE TRIGGER update_user_preferences_updated_at
 
 -- Migration completed successfully!
 -- You can now use the chat context menu features (pin, block, delete)
-

@@ -44,12 +44,32 @@ export class WebRTCManager {
   }
 
   private setupPeerConnection() {
-    // STUN servers for NAT traversal
+    // STUN and TURN servers for NAT traversal
     const configuration: RTCConfiguration = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-      ]
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // Add more STUN servers for better connectivity
+        { urls: 'stun:stun.ekiga.net' },
+        { urls: 'stun:stun.ideasip.com' },
+        { urls: 'stun:stun.schlund.de' },
+        { urls: 'stun:stun.stunprotocol.org:3478' },
+        { urls: 'stun:stun.voiparound.com' },
+        { urls: 'stun:stun.voipbuster.com' },
+        { urls: 'stun:stun.voipstunt.com' },
+        { urls: 'stun:stun.counterpath.com' },
+        { urls: 'stun:stun.1und1.de' },
+        { urls: 'stun:stun.gmx.net' },
+        { urls: 'stun:stun.sipgate.net' },
+        { urls: 'stun:stun.radiojar.com' },
+        { urls: 'stun:stun.sonetel.com' },
+        { urls: 'stun:stun.voipgate.com' },
+        { urls: 'stun:stun.voys.nl' }
+      ],
+      iceCandidatePoolSize: 10
     };
 
     this.peerConnection = new RTCPeerConnection(configuration);
@@ -75,11 +95,46 @@ export class WebRTCManager {
 
     // Handle connection state changes
     this.peerConnection.onconnectionstatechange = () => {
-      console.log('Connection state:', this.peerConnection?.connectionState);
-      if (this.peerConnection?.connectionState === 'failed' || 
-          this.peerConnection?.connectionState === 'disconnected') {
-        this.endCall();
+      const state = this.peerConnection?.connectionState;
+      console.log('Connection state:', state);
+      
+      switch (state) {
+        case 'connected':
+          console.log('WebRTC connection established successfully');
+          break;
+        case 'connecting':
+          console.log('WebRTC connection in progress...');
+          break;
+        case 'disconnected':
+          console.log('WebRTC connection disconnected');
+          this.onErrorCallback?.('Connection lost. Attempting to reconnect...');
+          break;
+        case 'failed':
+          console.log('WebRTC connection failed');
+          this.onErrorCallback?.('Connection failed. Please check your network and try again.');
+          this.endCall();
+          break;
+        case 'closed':
+          console.log('WebRTC connection closed');
+          break;
       }
+    };
+
+    // Handle ICE connection state changes
+    this.peerConnection.oniceconnectionstatechange = () => {
+      const iceState = this.peerConnection?.iceConnectionState;
+      console.log('ICE connection state:', iceState);
+      
+      if (iceState === 'failed') {
+        console.log('ICE connection failed');
+        this.onErrorCallback?.('Network connection failed. Please check your internet connection.');
+      }
+    };
+
+    // Handle ICE gathering state changes
+    this.peerConnection.onicegatheringstatechange = () => {
+      const gatheringState = this.peerConnection?.iceGatheringState;
+      console.log('ICE gathering state:', gatheringState);
     };
   }
 
@@ -110,6 +165,16 @@ export class WebRTCManager {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Check if we're on HTTPS (required for WebRTC)
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        throw new Error('WebRTC requires HTTPS. Please use a secure connection.');
+      }
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support WebRTC. Please use a modern browser.');
+      }
+
       // Create call record in database
       const { data: callData, error: callError } = await supabase
         .from('calls')
@@ -122,7 +187,29 @@ export class WebRTCManager {
         .select()
         .single();
 
-      if (callError) throw callError;
+      if (callError) {
+        console.error('Database error:', callError);
+        throw new Error('Failed to create call record');
+      }
+
+      // Send push notification to recipient
+      try {
+        await fetch('/api/send-call-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipientId,
+            senderName: user.user_metadata?.full_name || user.email || 'Someone',
+            callType,
+            callId: callData.id
+          })
+        });
+      } catch (notificationError) {
+        console.error('Failed to send call notification:', notificationError);
+        // Don't throw error - call should still work without notification
+      }
       
       this.callId = callData.id;
 
@@ -132,25 +219,57 @@ export class WebRTCManager {
       // Set up signaling channel
       await this.setupSignalingChannel();
 
-      // Get user media
+      // Get user media with better error handling
       const constraints: MediaStreamConstraints = {
-        audio: true,
-        video: callType === 'video'
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: callType === 'video' ? {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        } : false
       };
 
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.onLocalStreamCallback?.(this.localStream);
+      try {
+        console.log('Requesting user media with constraints:', constraints);
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Got local stream:', this.localStream);
+        
+        // Call the callback immediately when we get the local stream
+        this.onLocalStreamCallback?.(this.localStream);
 
-      // Add tracks to peer connection
-      this.localStream.getTracks().forEach(track => {
-        if (this.peerConnection && this.localStream) {
-          this.peerConnection.addTrack(track, this.localStream);
+        // Add tracks to peer connection
+        this.localStream.getTracks().forEach(track => {
+          if (this.peerConnection && this.localStream) {
+            this.peerConnection.addTrack(track, this.localStream);
+          }
+        });
+        
+        console.log('Added tracks to peer connection');
+      } catch (mediaError: any) {
+        console.error('Media access error:', mediaError);
+        if (mediaError.name === 'NotAllowedError') {
+          throw new Error('Camera/microphone access denied. Please allow access and try again.');
+        } else if (mediaError.name === 'NotFoundError') {
+          throw new Error('No camera/microphone found. Please check your device.');
+        } else if (mediaError.name === 'NotReadableError') {
+          throw new Error('Camera/microphone is being used by another application.');
+        } else {
+          throw new Error('Failed to access camera/microphone: ' + mediaError.message);
         }
-      });
+      }
 
       // Create and send offer
-      const offer = await this.peerConnection!.createOffer();
+      console.log('Creating offer...');
+      const offer = await this.peerConnection!.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: callType === 'video'
+      });
       await this.peerConnection!.setLocalDescription(offer);
+      console.log('Offer created and set as local description');
 
       this.sendSignalingMessage({
         type: 'offer',
@@ -161,6 +280,7 @@ export class WebRTCManager {
 
       return this.callId;
     } catch (error: any) {
+      console.error('Initialize call error:', error);
       this.onErrorCallback?.(error.message);
       throw error;
     }
@@ -171,42 +291,91 @@ export class WebRTCManager {
       this.callId = callId;
       this.isInitiator = false;
 
+      // Check if we're on HTTPS (required for WebRTC)
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        throw new Error('WebRTC requires HTTPS. Please use a secure connection.');
+      }
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support WebRTC. Please use a modern browser.');
+      }
+
       // Ensure peer connection is set up
       this.createPeerConnection();
 
-      // Update call status in database
-      await supabase
-        .from('calls')
-        .update({ status: 'answered' })
-        .eq('id', callId);
-
-      // Set up signaling channel
+      // Set up signaling channel FIRST to receive offers
       await this.setupSignalingChannel();
 
       // Get call info to determine if it's video or audio
-      const { data: callInfo } = await supabase
+      const { data: callInfo, error: callInfoError } = await supabase
         .from('calls')
         .select('call_type')
         .eq('id', callId)
         .single();
 
-      // Get user media
+      if (callInfoError) {
+        console.error('Failed to get call info:', callInfoError);
+        throw new Error('Failed to get call information');
+      }
+
+      // Get user media with better error handling
       const constraints: MediaStreamConstraints = {
-        audio: true,
-        video: callInfo?.call_type === 'video'
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: callInfo?.call_type === 'video' ? {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        } : false
       };
 
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.onLocalStreamCallback?.(this.localStream);
+      try {
+        console.log('Answering call - requesting user media with constraints:', constraints);
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Answer call - got local stream:', this.localStream);
+        
+        // Call the callback immediately when we get the local stream
+        this.onLocalStreamCallback?.(this.localStream);
 
-      // Add tracks to peer connection
-      this.localStream.getTracks().forEach(track => {
-        if (this.peerConnection && this.localStream) {
-          this.peerConnection.addTrack(track, this.localStream);
+        // Add tracks to peer connection
+        this.localStream.getTracks().forEach(track => {
+          if (this.peerConnection && this.localStream) {
+            this.peerConnection.addTrack(track, this.localStream);
+          }
+        });
+        
+        console.log('Answer call - added tracks to peer connection');
+
+        // Update call status in database AFTER setting up media
+        const { error: updateError } = await supabase
+          .from('calls')
+          .update({ status: 'answered' })
+          .eq('id', callId);
+
+        if (updateError) {
+          console.error('Failed to update call status:', updateError);
+          throw new Error('Failed to answer call');
         }
-      });
+
+      } catch (mediaError: any) {
+        console.error('Answer call - media access error:', mediaError);
+        if (mediaError.name === 'NotAllowedError') {
+          throw new Error('Camera/microphone access denied. Please allow access and try again.');
+        } else if (mediaError.name === 'NotFoundError') {
+          throw new Error('No camera/microphone found. Please check your device.');
+        } else if (mediaError.name === 'NotReadableError') {
+          throw new Error('Camera/microphone is being used by another application.');
+        } else {
+          throw new Error('Failed to access camera/microphone: ' + mediaError.message);
+        }
+      }
 
     } catch (error: any) {
+      console.error('Answer call error:', error);
       this.onErrorCallback?.(error.message);
       throw error;
     }
@@ -298,13 +467,17 @@ export class WebRTCManager {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || message.senderId === user.id) return; // Ignore own messages
 
+      console.log('Received signaling message:', message.type, 'from:', message.senderId);
+
       switch (message.type) {
         case 'offer':
-          if (!this.isInitiator) {
-            await this.peerConnection!.setRemoteDescription(message.data);
-            const answer = await this.peerConnection!.createAnswer();
-            await this.peerConnection!.setLocalDescription(answer);
+          if (!this.isInitiator && this.peerConnection) {
+            console.log('Processing offer from caller...');
+            await this.peerConnection.setRemoteDescription(message.data);
+            const answer = await this.peerConnection.createAnswer();
+            await this.peerConnection.setLocalDescription(answer);
             
+            console.log('Sending answer back to caller...');
             this.sendSignalingMessage({
               type: 'answer',
               callId: this.callId!,
@@ -315,8 +488,9 @@ export class WebRTCManager {
           break;
 
         case 'answer':
-          if (this.isInitiator) {
-            await this.peerConnection!.setRemoteDescription(message.data);
+          if (this.isInitiator && this.peerConnection) {
+            console.log('Processing answer from callee...');
+            await this.peerConnection.setRemoteDescription(message.data);
             
             // Mark call as answered and update started_at
             await supabase
@@ -326,15 +500,26 @@ export class WebRTCManager {
                 started_at: new Date().toISOString()
               })
               .eq('id', this.callId!);
+            
+            console.log('Call connection established!');
           }
           break;
 
         case 'ice-candidate':
-          await this.peerConnection!.addIceCandidate(message.data);
+          if (this.peerConnection && message.data) {
+            console.log('Adding ICE candidate...');
+            await this.peerConnection.addIceCandidate(message.data);
+          }
           break;
 
         case 'call-decline':
+          console.log('Call declined by remote party');
+          this.cleanup();
+          this.onCallEndCallback?.();
+          break;
+
         case 'call-end':
+          console.log('Call ended by remote party');
           this.cleanup();
           this.onCallEndCallback?.();
           break;
@@ -347,11 +532,14 @@ export class WebRTCManager {
 
   private sendSignalingMessage(message: SignalingMessage) {
     if (this.signalingChannel) {
+      console.log('Sending signaling message:', message.type, 'to call:', message.callId);
       this.signalingChannel.send({
         type: 'broadcast',
         event: 'signaling',
         payload: message
       });
+    } else {
+      console.error('No signaling channel available to send message:', message.type);
     }
   }
 

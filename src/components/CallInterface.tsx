@@ -60,11 +60,15 @@ export function CallInterface({
     // Set up WebRTC callbacks
     webrtc.setCallbacks({
       onLocalStream: (stream) => {
+        console.log('Local stream received:', stream);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
+        // Show controls as soon as we have local stream
+        setIsCallActive(true);
       },
       onRemoteStream: (stream) => {
+        console.log('Remote stream received:', stream);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = stream;
         }
@@ -72,9 +76,11 @@ export function CallInterface({
         callStartTimeRef.current = Date.now();
       },
       onCallEnd: () => {
+        console.log('Call ended');
         handleCallEnd();
       },
       onError: (error) => {
+        console.error('Call error:', error);
         toast({
           title: "Call Error",
           description: error,
@@ -85,6 +91,7 @@ export function CallInterface({
 
     // Auto-initiate call if not incoming
     if (!isIncoming && recipientId && callType) {
+      console.log('Initiating call...', { recipientId, callType });
       initiateCall();
     }
 
@@ -202,6 +209,11 @@ export function CallInterface({
                 <p className="text-white/80">
                   {!isCallActive ? (isIncoming ? 'Incoming call...' : 'Calling...') : `Call duration: ${formatDuration(callDuration)}`}
                 </p>
+                {!isIncoming && !isCallActive && (
+                  <p className="text-white/60 text-sm mt-2">
+                    Waiting for connection...
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -227,6 +239,11 @@ export function CallInterface({
             <p className="text-xl text-white/80">
               {!isCallActive ? (isIncoming ? 'Incoming voice call...' : 'Calling...') : formatDuration(callDuration)}
             </p>
+            {!isIncoming && !isCallActive && (
+              <p className="text-white/60 text-sm mt-2">
+                Waiting for connection...
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -255,8 +272,8 @@ export function CallInterface({
             </>
           )}
 
-          {/* Active call controls */}
-          {(isCallActive || (!isIncoming && callId)) && (
+          {/* Active call controls - show immediately when call is initiated */}
+          {(!isIncoming || isCallActive) && (
             <>
               {/* Mute button */}
               <Button
