@@ -54,8 +54,11 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Drop existing shared_event_links table if it exists
+DROP TABLE IF EXISTS public.shared_event_links CASCADE;
+
 -- Then create the shared_event_links table
-CREATE TABLE IF NOT EXISTS public.shared_event_links (
+CREATE TABLE public.shared_event_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   event_link TEXT,
@@ -68,43 +71,9 @@ CREATE TABLE IF NOT EXISTS public.shared_event_links (
   max_attendees INTEGER,
   is_public BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
 );
-
--- Add new columns to shared_event_links if they don't exist
-ALTER TABLE public.shared_event_links 
-ADD COLUMN IF NOT EXISTS event_type TEXT DEFAULT 'shared_link',
-ADD COLUMN IF NOT EXISTS event_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS event_location TEXT,
-ADD COLUMN IF NOT EXISTS event_category TEXT,
-ADD COLUMN IF NOT EXISTS max_attendees INTEGER,
-ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT true;
-
--- Add constraint for event_type if it doesn't exist
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'shared_event_links_event_type_check'
-    ) THEN
-        ALTER TABLE public.shared_event_links 
-        ADD CONSTRAINT shared_event_links_event_type_check 
-        CHECK (event_type IN ('shared_link', 'created_event'));
-    END IF;
-END $$;
-
--- Add foreign key constraint if it doesn't exist
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'shared_event_links_user_id_fkey'
-    ) THEN
-        ALTER TABLE public.shared_event_links 
-        ADD CONSTRAINT shared_event_links_user_id_fkey 
-        FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-    END IF;
-END $$;
 
 -- Enable RLS for shared_event_links
 ALTER TABLE public.shared_event_links ENABLE ROW LEVEL SECURITY;

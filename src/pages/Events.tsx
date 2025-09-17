@@ -48,7 +48,8 @@ export default function Events() {
           .from('shared_event_links')
           .select(`
             *,
-            profiles!shared_event_links_user_id_fkey (
+            profiles (
+              id,
               full_name,
               avatar_url
             )
