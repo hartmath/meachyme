@@ -106,8 +106,17 @@ export default function Events() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) throw new Error('Profile not found');
+
       const eventData: any = {
-        user_id: user.id,
+        user_id: profile.id,
         event_type: type,
         title: title,
         description: description
