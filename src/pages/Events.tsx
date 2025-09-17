@@ -44,27 +44,29 @@ export default function Events() {
           return [];
         }
 
-        const { data: links, error } = await supabase
+        // First get all event links
+        const { data: eventLinksData, error: eventLinksError } = await supabase
           .from('shared_event_links')
-          .select(`
-            shared_event_links.*,
-            profiles:user_id (
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching event links:', error);
-          toast({
-            title: "Error loading events",
-            description: error.message,
-            variant: "destructive",
-          });
-          return [];
-        }
+        if (eventLinksError) throw eventLinksError;
+
+        // Then get all profiles for those event links
+        const userIds = eventLinksData.map(link => link.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Combine the data
+        const links = eventLinksData.map(link => ({
+          ...link,
+          profiles: profilesData.find(profile => profile.id === link.user_id)
+        });
+
         return links || [];
       } catch (error) {
         console.error('Error in event links query:', error);

@@ -60,7 +60,7 @@ DROP TABLE IF EXISTS public.shared_event_links CASCADE;
 -- Then create the shared_event_links table
 CREATE TABLE public.shared_event_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   event_link TEXT,
   title TEXT NOT NULL,
   description TEXT,
@@ -73,11 +73,6 @@ CREATE TABLE public.shared_event_links (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
-
--- Add foreign key constraint
-ALTER TABLE public.shared_event_links
-ADD CONSTRAINT shared_event_links_user_id_fkey
-FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Enable RLS for shared_event_links
 ALTER TABLE public.shared_event_links ENABLE ROW LEVEL SECURITY;
