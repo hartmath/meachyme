@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MoreVertical, Users, Phone, Video, Image, Paperclip, Mic } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Users, Image, Paperclip, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -9,12 +9,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { GroupCallInterface } from "@/components/GroupCallInterface";
-import { GroupCallType } from "@/utils/groupWebRTC";
 import { sendGroupMessageNotification } from "@/utils/pushNotifications";
 import { MessageReactions } from "@/components/MessageReactions";
 import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
+import { MeetingButton } from "@/components/MeetingButton";
 
 export default function GroupChatDetail() {
   const { id } = useParams<{ id: string }>();
@@ -27,13 +26,6 @@ export default function GroupChatDetail() {
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const [activeGroupCall, setActiveGroupCall] = useState<{
-    callId: string;
-    groupId: string;
-    groupName: string;
-    callType: GroupCallType;
-    isInitiator: boolean;
-  } | null>(null);
 
   // Fetch group details
   const { data: group, isLoading: groupLoading } = useQuery({
@@ -64,6 +56,7 @@ export default function GroupChatDetail() {
         .select(`
           role,
           joined_at,
+          user_id,
           profiles!group_members_user_id_fkey (
             user_id,
             full_name,
@@ -92,6 +85,7 @@ export default function GroupChatDetail() {
           content,
           message_type,
           attachment_url,
+          attachment_metadata,
           created_at,
           sender_id,
           profiles!group_messages_sender_id_fkey (
@@ -110,7 +104,7 @@ export default function GroupChatDetail() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
@@ -120,7 +114,9 @@ export default function GroupChatDetail() {
           group_id: id,
           sender_id: user.id,
           content: content.trim(),
-          message_type: 'text'
+          message_type: messageType,
+          attachment_url: attachmentUrl,
+          attachment_metadata: attachmentMetadata
         });
 
       if (error) throw error;
@@ -286,7 +282,7 @@ export default function GroupChatDetail() {
 
   const handleSendMessage = () => {
     if (newMessage.trim() && !sendMessageMutation.isPending) {
-      sendMessageMutation.mutate(newMessage);
+      sendMessageMutation.mutate({ content: newMessage });
     }
   };
 
@@ -317,7 +313,7 @@ export default function GroupChatDetail() {
     fileInputRef.current?.click();
   };
 
-  const handleVoiceMessageSend = async (audioBlob: Blob) => {
+  const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or missing group ID');
@@ -336,11 +332,12 @@ export default function GroupChatDetail() {
         .from('chat-attachments')
         .getPublicUrl(fileName);
 
-      // Send message with voice attachment
+      // Send message with voice attachment and duration
       sendMessageMutation.mutate({ 
         content: "Voice message", 
         attachmentUrl: publicUrl,
-        messageType: 'voice'
+        messageType: 'voice',
+        attachmentMetadata: { duration: duration }
       });
 
       setShowVoiceRecorder(false);
@@ -354,70 +351,6 @@ export default function GroupChatDetail() {
     }
   };
 
-  // Start group call mutation
-  const startGroupCallMutation = useMutation({
-    mutationFn: async (callType: GroupCallType) => {
-      if (!id) throw new Error('No group ID');
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Create group call record
-      const { data: callData, error } = await supabase
-        .from('group_calls')
-        .insert({
-          group_id: id,
-          initiator_id: user.id,
-          call_type: callType,
-          status: 'calling'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Add initiator as participant
-      await supabase
-        .from('group_call_participants')
-        .insert({
-          call_id: callData.id,
-          user_id: user.id,
-          is_active: true
-        });
-
-      return callData;
-    },
-    onSuccess: (callData) => {
-      if (group) {
-        setActiveGroupCall({
-          callId: callData.id,
-          groupId: id!,
-          groupName: group.name,
-          callType: callData.call_type as GroupCallType,
-          isInitiator: true
-        });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to start call",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleStartVoiceCall = () => {
-    startGroupCallMutation.mutate('voice');
-  };
-
-  const handleStartVideoCall = () => {
-    startGroupCallMutation.mutate('video');
-  };
-
-  const handleGroupCallEnd = () => {
-    setActiveGroupCall(null);
-  };
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 
@@ -447,19 +380,6 @@ export default function GroupChatDetail() {
     );
   }
 
-  // Show group call interface if there's an active call
-  if (activeGroupCall) {
-    return (
-      <GroupCallInterface
-        callId={activeGroupCall.callId}
-        groupId={activeGroupCall.groupId}
-        groupName={activeGroupCall.groupName}
-        callType={activeGroupCall.callType}
-        isInitiator={activeGroupCall.isInitiator}
-        onCallEnd={handleGroupCallEnd}
-      />
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -489,24 +409,14 @@ export default function GroupChatDetail() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="h-8 w-8"
-            onClick={handleStartVoiceCall}
-            disabled={startGroupCallMutation.isPending}
-          >
-            <Phone className="h-4 w-4" />
-          </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="h-8 w-8"
-            onClick={handleStartVideoCall}
-            disabled={startGroupCallMutation.isPending}
-          >
-            <Video className="h-4 w-4" />
-          </Button>
+          <MeetingButton 
+            chatId={id}
+            chatType="group"
+            chatName={group?.name || 'Group'}
+            variant="ghost"
+            size="sm"
+          />
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -574,7 +484,9 @@ export default function GroupChatDetail() {
                       </a>
                     </div>
                   ) : message.message_type === 'voice' && message.attachment_url ? (
-                    <VoiceMessagePlayer audioUrl={message.attachment_url} />
+                    <VoiceMessagePlayer 
+                      audioUrl={message.attachment_url}
+                      duration={(message.attachment_metadata as any)?.duration} />
                   ) : (
                     <p className="text-sm">{message.content}</p>
                   )}

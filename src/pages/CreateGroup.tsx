@@ -106,14 +106,14 @@ export default function CreateGroup() {
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('avatars')
+        .from('chat-attachments')
         .upload(fileName, file);
 
       if (error) throw error;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('chat-attachments')
         .getPublicUrl(fileName);
 
       return publicUrl;

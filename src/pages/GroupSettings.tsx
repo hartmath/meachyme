@@ -142,14 +142,14 @@ export default function GroupSettings() {
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('avatars')
+        .from('chat-attachments')
         .upload(fileName, file);
 
       if (error) throw error;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('chat-attachments')
         .getPublicUrl(fileName);
 
       // Update group with new avatar

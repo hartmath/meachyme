@@ -4,7 +4,7 @@ import { Mic, MicOff, Play, Pause, Square, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface VoiceMessageRecorderProps {
-  onSend: (audioBlob: Blob) => void;
+  onSend: (audioBlob: Blob, duration: number) => void;
   onCancel: () => void;
 }
 
@@ -105,7 +105,7 @@ export function VoiceMessageRecorder({ onSend, onCancel }: VoiceMessageRecorderP
 
   const handleSend = () => {
     if (audioBlob) {
-      onSend(audioBlob);
+      onSend(audioBlob, recordingTime);
     }
   };
 

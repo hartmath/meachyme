@@ -14,11 +14,9 @@ import Auth from "./pages/Auth";
 import Chats from "./pages/Chats";
 import Feed from "./pages/Feed";
 import Events from "./pages/Events";
-import Calls from "./pages/Calls";
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import ChatDetail from "./pages/ChatDetail";
-import Call from "./pages/Call";
 import CreateStatus from "./pages/CreateStatus";
 import ContactDiscovery from "./pages/ContactDiscovery";
 import Privacy from "./pages/settings/Privacy";
@@ -33,6 +31,7 @@ import GroupChatList from "./pages/GroupChatList";
 import CreateGroup from "./pages/CreateGroup";
 import GroupChatDetail from "./pages/GroupChatDetail";
 import GroupSettings from "./pages/GroupSettings";
+import MEAMeetPage from "./pages/MEAMeetPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,17 +72,6 @@ function AppContent() {
             <BottomNavigation />
           </ProtectedRoute>
         } />
-        <Route path="/calls" element={
-          <ProtectedRoute>
-            <Calls />
-            <BottomNavigation />
-          </ProtectedRoute>
-        } />
-        <Route path="/call/:id" element={
-          <ProtectedRoute>
-            <Call />
-          </ProtectedRoute>
-        } />
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
@@ -120,6 +108,17 @@ function AppContent() {
             <GroupSettings />
           </ProtectedRoute>
         } />
+                <Route path="/meet" element={
+                  <ProtectedRoute>
+                    <MEAMeetPage />
+                    <BottomNavigation />
+                  </ProtectedRoute>
+                } />
+                <Route path="/meet/:meetingId" element={
+                  <ProtectedRoute>
+                    <MEAMeetPage />
+                  </ProtectedRoute>
+                } />
         <Route path="/create-status" element={
           <ProtectedRoute>
             <CreateStatus />
