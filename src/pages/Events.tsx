@@ -44,28 +44,8 @@ export default function Events() {
           return [];
         }
 
-        // First get all event links
-        const { data: eventLinksData, error: eventLinksError } = await supabase
-          .from('shared_event_links')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (eventLinksError) throw eventLinksError;
-
-        // Then get all profiles for those event links
-        const userIds = eventLinksData.map(link => link.user_id);
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', userIds);
-
-        if (profilesError) throw profilesError;
-
-        // Combine the data
-        const links = eventLinksData.map(link => ({
-          ...link,
-          profiles: profilesData.find(profile => profile.id === link.user_id)
-        });
+        const { data: links, error } = await supabase
+          .rpc('get_event_links_with_profiles');
 
         return links || [];
       } catch (error) {
