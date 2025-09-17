@@ -48,10 +48,10 @@ export default function Events() {
           .from('shared_event_links')
           .select(`
             *,
-            profiles!shared_event_links_user_id_fkey (
-              full_name,
-              avatar_url
-            )
+                profiles (
+                  full_name,
+                  avatar_url
+                )
           `)
           .order('created_at', { ascending: false });
 
