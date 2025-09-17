@@ -1,80 +1,212 @@
-import React, { useState, useEffect } from 'react';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BottomNavigation } from "@/components/BottomNavigation";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useWebPushNotifications } from "@/hooks/useWebPushNotifications";
+import { NotificationBadgeManager } from "@/components/NotificationBadgeManager";
+import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { useNavigate } from "react-router-dom";
+import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import Chats from "./pages/Chats";
+import Feed from "./pages/Feed";
+import Events from "./pages/Events";
+import Calls from "./pages/Calls";
+import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
+import ChatDetail from "./pages/ChatDetail";
+import Call from "./pages/Call";
+import CreateStatus from "./pages/CreateStatus";
+import ContactDiscovery from "./pages/ContactDiscovery";
+import Privacy from "./pages/settings/Privacy";
+import Notifications from "./pages/settings/Notifications";
+import Help from "./pages/settings/Help";
+import Location from "./pages/settings/Location";
+import Storage from "./pages/settings/Storage";
+import Welcome from "./pages/onboarding/Welcome";
+import RoleSelection from "./pages/onboarding/RoleSelection";
+import ProfileSetup from "./pages/onboarding/ProfileSetup";
+import GroupChatList from "./pages/GroupChatList";
+import CreateGroup from "./pages/CreateGroup";
+import GroupChatDetail from "./pages/GroupChatDetail";
+import GroupSettings from "./pages/GroupSettings";
+import NotFound from "./pages/NotFound";
 
-// Simple loading component
-const LoadingScreen = () => {
+const queryClient = new QueryClient();
+
+function AppContent() {
+  // Initialize web push notifications
+  useWebPushNotifications();
+  const navigate = useNavigate();
+  
+  const handleIncomingCallAnswer = (callId: string, callType: 'voice' | 'video', callerName: string, callerAvatar?: string) => {
+    navigate(`/call/${callId}?type=${callType}&incoming=true&callerName=${encodeURIComponent(callerName)}&callerAvatar=${encodeURIComponent(callerAvatar || '')}`);
+  };
+
+  const handleIncomingCallDecline = (callId: string) => {
+    // Call declined, stay on current page
+    console.log('Call declined:', callId);
+  };
+  
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Chyme</h1>
-        <p className="text-muted-foreground">Loading messaging platform...</p>
-      </div>
-    </div>
-  );
-};
-
-// Simple test component
-const TestPage = () => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isLoaded) {
-    return <LoadingScreen />;
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center p-8 max-w-md mx-auto">
-        <h1 className="text-4xl font-bold text-foreground mb-4">Chyme</h1>
-        <p className="text-muted-foreground mb-6">Messaging Platform</p>
-        
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          ✅ Vercel deployment working!
-        </div>
-        
-        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-          📱 Mobile compatible
-        </div>
-        
-        <div className="bg-purple-100 border border-purple-400 text-purple-700 px-4 py-3 rounded mb-6">
-          🌐 Chrome compatible
-        </div>
-        
-        <p className="text-sm text-muted-foreground">
-          Full Chyme app with messaging, calls, and groups is ready to deploy.
-        </p>
-        
-        <div className="mt-6">
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const App = () => {
-  return (
-    <BrowserRouter>
+    <div className="min-h-screen bg-background">
+      <NotificationBadgeManager />
+      <IncomingCallModal 
+        onAnswer={handleIncomingCallAnswer}
+        onDecline={handleIncomingCallDecline}
+      />
       <Routes>
-        <Route path="/" element={<TestPage />} />
-        <Route path="*" element={<TestPage />} />
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Protected routes */}
+        <Route path="/chats" element={
+          <ProtectedRoute>
+            <Chats />
+            <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat/:id" element={
+          <ProtectedRoute>
+            <ChatDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/feed" element={
+          <ProtectedRoute>
+            <Feed />
+            <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/events" element={
+          <ProtectedRoute>
+            <Events />
+            <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/calls" element={
+          <ProtectedRoute>
+            <Calls />
+            <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/call/:id" element={
+          <ProtectedRoute>
+            <Call />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+            <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/edit" element={
+          <ProtectedRoute>
+            <ProfileEdit />
+          </ProtectedRoute>
+        } />
+        <Route path="/contact-discovery" element={
+          <ProtectedRoute>
+            <ContactDiscovery />
+          </ProtectedRoute>
+        } />
+        <Route path="/groups" element={
+          <ProtectedRoute>
+            <GroupChatList />
+          </ProtectedRoute>
+        } />
+        <Route path="/create-group" element={
+          <ProtectedRoute>
+            <CreateGroup />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat/group/:id" element={
+          <ProtectedRoute>
+            <GroupChatDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/group/:id/settings" element={
+          <ProtectedRoute>
+            <GroupSettings />
+          </ProtectedRoute>
+        } />
+        <Route path="/create-status" element={
+          <ProtectedRoute>
+            <CreateStatus />
+          </ProtectedRoute>
+        } />
+        
+        {/* Settings routes */}
+        <Route path="/settings/notifications" element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/privacy" element={
+          <ProtectedRoute>
+            <Privacy />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/help" element={
+          <ProtectedRoute>
+            <Help />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/location" element={
+          <ProtectedRoute>
+            <Location />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings/storage" element={
+          <ProtectedRoute>
+            <Storage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Onboarding routes */}
+        <Route path="/onboarding/welcome" element={
+          <ProtectedRoute>
+            <Welcome />
+          </ProtectedRoute>
+        } />
+        <Route path="/onboarding/role-selection" element={
+          <ProtectedRoute>
+            <RoleSelection />
+          </ProtectedRoute>
+        } />
+        <Route path="/onboarding/profile-setup" element={
+          <ProtectedRoute>
+            <ProfileSetup />
+          </ProtectedRoute>
+        } />
+        
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+    </div>
   );
-};
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
+);
 
 export default App;
