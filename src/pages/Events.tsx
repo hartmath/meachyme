@@ -44,8 +44,16 @@ export default function Events() {
           return [];
         }
 
-        const { data: links, error } = await supabase
-          .rpc('get_event_links_with_profiles');
+        const { data: linksData, error } = await supabase
+          .from('event_links_with_profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // Transform the data to match the expected format
+        const links = linksData?.map(link => ({
+          ...link,
+          profiles: link.profile_data
+        }));
 
         return links || [];
       } catch (error) {

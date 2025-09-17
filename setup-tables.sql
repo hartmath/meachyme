@@ -99,36 +99,15 @@ CREATE TRIGGER update_shared_event_links_updated_at
   FOR EACH ROW 
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Create function to get event links with profiles
-CREATE OR REPLACE FUNCTION public.get_event_links_with_profiles()
-RETURNS TABLE (
-  id UUID,
-  user_id UUID,
-  event_link TEXT,
-  title TEXT,
-  description TEXT,
-  event_type TEXT,
-  event_date TIMESTAMP WITH TIME ZONE,
-  event_location TEXT,
-  event_category TEXT,
-  max_attendees INTEGER,
-  is_public BOOLEAN,
-  created_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE,
-  profiles JSONB
-) SECURITY DEFINER
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    e.*,
-    jsonb_build_object(
-      'id', p.id,
-      'full_name', p.full_name,
-      'avatar_url', p.avatar_url
-    ) as profiles
-  FROM public.shared_event_links e
-  LEFT JOIN public.profiles p ON e.user_id = p.id
-  ORDER BY e.created_at DESC;
-END;
-$$ LANGUAGE plpgsql;
+-- Create view for event links with profiles
+DROP VIEW IF EXISTS public.event_links_with_profiles;
+CREATE VIEW public.event_links_with_profiles AS
+SELECT 
+  e.*,
+  jsonb_build_object(
+    'id', p.id,
+    'full_name', p.full_name,
+    'avatar_url', p.avatar_url
+  ) as profile_data
+FROM public.shared_event_links e
+LEFT JOIN public.profiles p ON e.user_id = p.id;
