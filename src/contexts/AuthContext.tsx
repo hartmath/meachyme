@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initializeState();
+  }, []); // Close first useEffect
 
   useEffect(() => {
     // Set up auth state listener FIRST
