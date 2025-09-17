@@ -196,18 +196,11 @@ function AppContent() {
 }
 
 const App = () => {
-  const isOnline = useNetworkStatus();
-
   // Configure React Query for better error handling and retries
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        retry: (failureCount, error) => {
-          // Don't retry if we're offline
-          if (!isOnline) return false;
-          // Retry up to 3 times
-          return failureCount < 3;
-        },
+        retry: 3,
         retryDelay: 1000,
         staleTime: 5 * 60 * 1000, // 5 minutes
         cacheTime: 10 * 60 * 1000, // 10 minutes
@@ -218,10 +211,7 @@ const App = () => {
         },
       },
       mutations: {
-        retry: (failureCount, error) => {
-          if (!isOnline) return false;
-          return failureCount < 3;
-        },
+        retry: 3,
         retryDelay: 1000,
         onError: (error) => {
           console.error('Mutation error:', error);
