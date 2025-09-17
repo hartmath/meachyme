@@ -14,7 +14,7 @@ import {
   Copy,
   Share2
 } from 'lucide-react';
-import { MEAMeet } from '@/components/MEAMeet';
+import { SimpleMEAMeet } from '@/components/SimpleMEAMeet';
 import { CreateMeeting } from '@/components/CreateMeeting';
 import { MeetingList } from '@/components/MeetingList';
 import { useToast } from '@/hooks/use-toast';
@@ -127,7 +127,7 @@ export default function MEAMeetPage() {
   // If we're in a meeting, show the meeting interface
   if (isInMeeting && currentMeetingId) {
     return (
-      <MEAMeet
+      <SimpleMEAMeet
         meetingId={currentMeetingId}
         onLeave={handleLeaveMeeting}
         isHost={true}

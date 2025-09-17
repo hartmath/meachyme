@@ -1,5 +1,5 @@
 import { ArrowLeft, MoreVertical, Phone, Video, UserPlus, Flag, Volume, VolumeX } from "lucide-react";
-import { MeetingButton } from "./MeetingButton";
+// import { MeetingButton } from "./MeetingButton";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -78,13 +78,13 @@ export function ChatHeader({
       </div>
 
       {/* Meeting Button */}
-      <MeetingButton 
+      {/* <MeetingButton 
         chatId={chatPartner.user_id}
         chatType="direct"
         chatName={chatPartner.full_name || 'User'}
         variant="ghost"
         size="sm"
-      />
+      /> */}
 
       {/* Actions Dropdown */}
       <DropdownMenu>

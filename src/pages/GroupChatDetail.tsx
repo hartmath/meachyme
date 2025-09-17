@@ -13,7 +13,7 @@ import { sendGroupMessageNotification } from "@/utils/pushNotifications";
 import { MessageReactions } from "@/components/MessageReactions";
 import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
-import { MeetingButton } from "@/components/MeetingButton";
+// import { MeetingButton } from "@/components/MeetingButton";
 
 export default function GroupChatDetail() {
   const { id } = useParams<{ id: string }>();
@@ -409,13 +409,13 @@ export default function GroupChatDetail() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <MeetingButton 
+          {/* <MeetingButton 
             chatId={id}
             chatType="group"
             chatName={group?.name || 'Group'}
             variant="ghost"
             size="sm"
-          />
+          /> */}
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
