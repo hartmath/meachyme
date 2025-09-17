@@ -4,7 +4,7 @@
 
 ### **1. 🎯 Core Features (100% Complete)**
 - ✅ **Real-time Messaging** - Direct and group chats
-- ✅ **Voice & Video Calls** - WebRTC with enhanced error handling
+- ✅ **Voice & MEA Meet** - WebRTC with enhanced error handling
 - ✅ **File Sharing** - Images, videos, documents, voice messages
 - ✅ **Status Posts** - Like, comment, share functionality
 - ✅ **User Profiles** - Complete profile management
@@ -77,7 +77,7 @@ Run these SQL scripts in your Supabase Dashboard SQL Editor:
 
 2. **Test Core Features**:
    - ✅ Send messages (direct and group)
-   - ✅ Make voice/video calls
+   - ✅ Make voice calls and MEA Meet
    - ✅ Share files (images, videos, documents)
    - ✅ Post status updates with interactions
    - ✅ Use chat context menu (pin, block, delete)
@@ -126,7 +126,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 | Direct Messaging | ✅ Complete | Real-time with notifications |
 | Group Messaging | ✅ Complete | Fixed RLS policies |
 | Voice Calls | ✅ Complete | Enhanced WebRTC |
-| Video Calls | ✅ Complete | Enhanced WebRTC |
+| MEA Meet | ✅ Complete | Enhanced WebRTC |
 | File Sharing | ✅ Complete | Images, videos, documents, voice |
 | Status Posts | ✅ Complete | Like, comment, share |
 | Push Notifications | ✅ Complete | Messages and calls |

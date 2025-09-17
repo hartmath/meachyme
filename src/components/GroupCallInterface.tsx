@@ -169,7 +169,7 @@ export function GroupCallInterface({
             <div>
               <h1 className="text-white font-semibold">{groupName}</h1>
               <p className="text-white/70 text-sm">
-                {callType === 'video' ? 'Video call' : 'Voice call'} • {participants.length + 1} participants
+                {callType === 'video' ? 'MEA Meet' : 'Voice call'} • {participants.length + 1} participants
               </p>
             </div>
           </div>

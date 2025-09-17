@@ -58,11 +58,11 @@ export default function Help() {
       items: [
         {
           question: "How do I make a voice or video call?",
-          answer: "In any chat, tap the phone icon for voice calls or the video icon for video calls. The other person will receive a notification."
+          answer: "In any chat, tap the phone icon for voice calls or the video icon for MEA Meet. The other person will receive a notification."
         },
         {
           question: "Can I make group calls?",
-          answer: "Yes! In group chats, you can start group voice or video calls that all group members can join."
+          answer: "Yes! In group chats, you can start group voice calls or MEA Meet that all group members can join."
         },
         {
           question: "What if I miss a call?",

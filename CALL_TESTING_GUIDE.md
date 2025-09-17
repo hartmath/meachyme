@@ -62,7 +62,7 @@ The WebRTC signaling system has been improved with the following fixes:
    - Should toggle between muted/unmuted states
    - Test on both caller and recipient
 
-2. **Video Toggle (Video Calls):**
+2. **Video Toggle (MEA Meet):**
    - Click video button
    - Should turn video on/off
    - Test on both caller and recipient

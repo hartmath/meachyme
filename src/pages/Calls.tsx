@@ -81,7 +81,7 @@ export default function Calls() {
         </Button>
         <Button className="w-full justify-start" variant="outline">
           <Video className="h-4 w-4 mr-3" />
-          Video Call
+          MEA Meet
         </Button>
       </div>
 
@@ -142,7 +142,7 @@ export default function Calls() {
                       size="icon" 
                       variant="ghost"
                       onClick={() => handleCall(contact.id, 'video')}
-                      title="Video call"
+                      title="MEA Meet"
                     >
                       <Video className="h-4 w-4" />
                     </Button>

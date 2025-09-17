@@ -222,7 +222,7 @@ export function ChatContextMenu({
           Voice Call
         </Button>
 
-        {/* Video Call */}
+        {/* MEA Meet */}
         <Button
           variant="ghost"
           size="sm"
@@ -230,7 +230,7 @@ export function ChatContextMenu({
           onClick={() => handleCall('video')}
         >
           <Video className="h-4 w-4 mr-2" />
-          Video Call
+          MEA Meet
         </Button>
 
         {/* Block/Unblock */}

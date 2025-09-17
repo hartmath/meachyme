@@ -81,7 +81,7 @@ serve(async (req) => {
 
       case 'call':
         notification.title = `Incoming ${callType} call from ${senderName}`
-        notification.body = callType === 'video' ? 'Video call' : 'Voice call'
+        notification.body = callType === 'video' ? 'MEA Meet' : 'Voice call'
         notification.sound = 'default'
         notification.data = {
           type: 'call',
