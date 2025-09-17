@@ -71,9 +71,13 @@ CREATE TABLE public.shared_event_links (
   max_attendees INTEGER,
   is_public BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+
+-- Add foreign key constraint
+ALTER TABLE public.shared_event_links
+ADD CONSTRAINT shared_event_links_user_id_fkey
+FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- Enable RLS for shared_event_links
 ALTER TABLE public.shared_event_links ENABLE ROW LEVEL SECURITY;

@@ -47,8 +47,8 @@ export default function Events() {
         const { data: links, error } = await supabase
           .from('shared_event_links')
           .select(`
-            *,
-            profiles (
+            shared_event_links.*,
+            profiles:user_id (
               id,
               full_name,
               avatar_url
