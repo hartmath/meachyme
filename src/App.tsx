@@ -7,11 +7,6 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useWebPushNotifications } from "@/hooks/useWebPushNotifications";
-import { NotificationBadgeManager } from "@/components/NotificationBadgeManager";
-import { IncomingCallModal } from "@/components/IncomingCallModal";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chats from "./pages/Chats";
@@ -37,34 +32,18 @@ import CreateGroup from "./pages/CreateGroup";
 import GroupChatDetail from "./pages/GroupChatDetail";
 import GroupSettings from "./pages/GroupSettings";
 import NotFound from "./pages/NotFound";
+import Test from "./pages/Test";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
-  // Initialize web push notifications
-  useWebPushNotifications();
-  const navigate = useNavigate();
-  
-  const handleIncomingCallAnswer = (callId: string, callType: 'voice' | 'video', callerName: string, callerAvatar?: string) => {
-    navigate(`/call/${callId}?type=${callType}&incoming=true&callerName=${encodeURIComponent(callerName)}&callerAvatar=${encodeURIComponent(callerAvatar || '')}`);
-  };
-
-  const handleIncomingCallDecline = (callId: string) => {
-    // Call declined, stay on current page
-    console.log('Call declined:', callId);
-  };
-  
   return (
     <div className="min-h-screen bg-background">
-      <NotificationBadgeManager />
-      <IncomingCallModal 
-        onAnswer={handleIncomingCallAnswer}
-        onDecline={handleIncomingCallDecline}
-      />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/test" element={<Test />} />
         
         {/* Protected routes */}
         <Route path="/chats" element={
@@ -195,21 +174,19 @@ function AppContent() {
 }
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 );
 
 export default App;

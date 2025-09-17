@@ -1,5 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
@@ -26,42 +25,67 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="text-center max-w-md">
-            <div className="text-red-500 mb-4">
-              <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
-            <p className="text-muted-foreground mb-6">
+        <div style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          padding: '1rem',
+          backgroundColor: '#f3f4f6'
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              Something went wrong
+            </h1>
+            <p style={{ marginBottom: '1.5rem', color: '#6b7280' }}>
               The app encountered an unexpected error. Please try refreshing the page.
             </p>
-            <div className="space-y-2">
-              <Button 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button 
                 onClick={() => window.location.reload()} 
-                className="w-full"
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer'
+                }}
               >
                 Refresh Page
-              </Button>
-              <Button 
+              </button>
+              <button 
                 onClick={() => {
                   localStorage.clear();
                   sessionStorage.clear();
                   window.location.reload();
                 }} 
-                variant="outline"
-                className="w-full"
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'transparent',
+                  color: '#3b82f6',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer'
+                }}
               >
                 Clear Cache & Refresh
-              </Button>
+              </button>
             </div>
             {this.state.error && (
-              <details className="mt-4 text-left">
-                <summary className="cursor-pointer text-sm text-muted-foreground">
+              <details style={{ marginTop: '1rem', textAlign: 'left' }}>
+                <summary style={{ cursor: 'pointer', fontSize: '0.875rem', color: '#6b7280' }}>
                   Error Details
                 </summary>
-                <pre className="mt-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded overflow-auto">
+                <pre style={{ 
+                  marginTop: '0.5rem', 
+                  fontSize: '0.75rem', 
+                  color: '#ef4444', 
+                  backgroundColor: '#fef2f2', 
+                  padding: '0.5rem', 
+                  borderRadius: '0.25rem', 
+                  overflow: 'auto' 
+                }}>
                   {this.state.error.message}
                 </pre>
               </details>

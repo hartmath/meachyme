@@ -1,8 +1,7 @@
-import { ExternalLink, Search, Calendar, Plus, Link, Share2, Clock, MapPin, Users, CalendarDays } from "lucide-react";
+import { ExternalLink, Search, Calendar, Plus, Link, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { SearchModal } from "@/components/SearchModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -15,15 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 export default function Events() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isPostingEvent, setIsPostingEvent] = useState(false);
-  const [eventType, setEventType] = useState<'shared_link' | 'created_event'>('shared_link');
   const [eventLink, setEventLink] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [eventTime, setEventTime] = useState("");
-  const [eventLocation, setEventLocation] = useState("");
-  const [eventCategory, setEventCategory] = useState("");
-  const [maxAttendees, setMaxAttendees] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();

@@ -13,24 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-  global: {
-    fetch: (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          'Content-Type': 'application/json',
-        },
-      }).catch(error => {
-        console.error('Supabase fetch error:', error);
-        // Don't throw the error to prevent app crashes
-        return new Response(JSON.stringify({ error: 'Network error' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      });
-    },
-  },
+  }
 });

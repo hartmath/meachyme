@@ -25,72 +25,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          try {
+            setSession(session);
+            setUser(session?.user ?? null);
+            setLoading(false);
+
+            // Handle auth events
+            if (event === 'SIGNED_IN') {
+              // Check if user needs onboarding
+              const onboardingCompleted = localStorage.getItem("onboarding_completed");
+              const isNewUser = localStorage.getItem("is_new_user") === "true";
+              
+              if (isNewUser && !onboardingCompleted) {
+                setNeedsOnboarding(true);
+              } else {
+                setNeedsOnboarding(false);
+              }
+              
+              // Clear the new user flag after checking
+              localStorage.removeItem("is_new_user");
+              
+              // Only show welcome message if this is a fresh sign-in (not a page refresh)
+              const hasShownWelcome = sessionStorage.getItem("welcome_shown");
+              if (!hasShownWelcome) {
+                toast({
+                  title: "Welcome back!",
+                  description: "You have been signed in successfully.",
+                });
+                sessionStorage.setItem("welcome_shown", "true");
+              }
+            } else if (event === 'SIGNED_OUT') {
+              setNeedsOnboarding(false);
+              // Clear onboarding status on logout
+              localStorage.removeItem("onboarding_completed");
+              // Clear welcome flag so it can show again on next login
+              sessionStorage.removeItem("welcome_shown");
+              toast({
+                title: "Signed out",
+                description: "You have been signed out successfully.",
+              });
+            } else if (event === 'USER_UPDATED') {
+              toast({
+                title: "Profile updated",
+                description: "Your profile has been updated.",
+              });
+            }
+          } catch (error) {
+            console.error('Error in auth state change:', error);
+            setLoading(false);
+          }
+        }
+      );
+
+      // THEN check for existing session
+      supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Handle auth events
-        if (event === 'SIGNED_IN') {
-          // Check if user needs onboarding
+        
+        if (session) {
+          // Check if existing user needs onboarding
           const onboardingCompleted = localStorage.getItem("onboarding_completed");
-          const isNewUser = localStorage.getItem("is_new_user") === "true";
-          
-          if (isNewUser && !onboardingCompleted) {
+          if (!onboardingCompleted) {
             setNeedsOnboarding(true);
-          } else {
-            setNeedsOnboarding(false);
           }
-          
-          // Clear the new user flag after checking
-          localStorage.removeItem("is_new_user");
-          
-          // Only show welcome message if this is a fresh sign-in (not a page refresh)
-          const hasShownWelcome = sessionStorage.getItem("welcome_shown");
-          if (!hasShownWelcome) {
-            toast({
-              title: "Welcome back!",
-              description: "You have been signed in successfully.",
-            });
-            sessionStorage.setItem("welcome_shown", "true");
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setNeedsOnboarding(false);
-          // Clear onboarding status on logout
-          localStorage.removeItem("onboarding_completed");
-          // Clear welcome flag so it can show again on next login
-          sessionStorage.removeItem("welcome_shown");
-          toast({
-            title: "Signed out",
-            description: "You have been signed out successfully.",
-          });
-        } else if (event === 'USER_UPDATED') {
-          toast({
-            title: "Profile updated",
-            description: "Your profile has been updated.",
-          });
         }
-      }
-    );
+        
+        setLoading(false);
+      }).catch((error) => {
+        console.error('Error getting session:', error);
+        setLoading(false);
+      });
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session) {
-        // Check if existing user needs onboarding
-        const onboardingCompleted = localStorage.getItem("onboarding_completed");
-        if (!onboardingCompleted) {
-          setNeedsOnboarding(true);
-        }
-      }
-      
+      return () => subscription.unsubscribe();
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
       setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, [toast]);
 
   const signUp = async (email: string, password: string, userData?: { full_name?: string; user_type?: string }) => {
