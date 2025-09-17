@@ -57,7 +57,7 @@ CREATE TRIGGER on_auth_user_created
 -- Then create the shared_event_links table
 CREATE TABLE IF NOT EXISTS public.shared_event_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   event_link TEXT,
   title TEXT NOT NULL,
   description TEXT,
