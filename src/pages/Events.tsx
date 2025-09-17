@@ -48,7 +48,7 @@ export default function Events() {
           .from('shared_event_links')
           .select(`
             *,
-            user:user_id (
+            profiles!shared_event_links_user_id_fkey (
               full_name,
               avatar_url
             )
@@ -540,11 +540,11 @@ export default function Events() {
                 <div className="flex items-center space-x-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-xs font-medium text-primary">
-                      {eventLink.user?.full_name?.charAt(0) || 'U'}
+                      {eventLink.profiles?.full_name?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {eventLink.event_type === 'created_event' ? 'Created by' : 'Shared by'} {eventLink.user?.full_name || 'Unknown'}
+                    {eventLink.event_type === 'created_event' ? 'Created by' : 'Shared by'} {eventLink.profiles?.full_name || 'Unknown'}
                   </span>
                 </div>
               </div>

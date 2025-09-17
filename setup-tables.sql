@@ -57,7 +57,7 @@ CREATE TRIGGER on_auth_user_created
 -- Then create the shared_event_links table
 CREATE TABLE IF NOT EXISTS public.shared_event_links (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
   event_link TEXT,
   title TEXT NOT NULL,
   description TEXT,
@@ -90,6 +90,19 @@ BEGIN
         ALTER TABLE public.shared_event_links 
         ADD CONSTRAINT shared_event_links_event_type_check 
         CHECK (event_type IN ('shared_link', 'created_event'));
+    END IF;
+END $$;
+
+-- Add foreign key constraint if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'shared_event_links_user_id_fkey'
+    ) THEN
+        ALTER TABLE public.shared_event_links 
+        ADD CONSTRAINT shared_event_links_user_id_fkey 
+        FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
     END IF;
 END $$;
 
