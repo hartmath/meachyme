@@ -29,26 +29,36 @@ export default function Events() {
   const queryClient = useQueryClient();
 
   // Fetch shared event links
-  const { data: eventLinks, isLoading } = useQuery({
+  const { data: eventLinks, isLoading, error: queryError } = useQuery({
     queryKey: ['shared-event-links'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
 
-      const { data: links, error } = await supabase
-        .from('shared_event_links')
-        .select(`
-          *,
-          profiles!shared_event_links_user_id_fkey (
-            full_name,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false });
+        const { data: links, error } = await supabase
+          .from('shared_event_links')
+          .select(`
+            *,
+            profiles!shared_event_links_user_id_fkey (
+              full_name,
+              avatar_url
+            )
+          `)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return links;
-    }
+        if (error) {
+          console.error('Error fetching event links:', error);
+          return [];
+        }
+        return links || [];
+      } catch (error) {
+        console.error('Error in event links query:', error);
+        return [];
+      }
+    },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Post event mutation
@@ -394,6 +404,24 @@ export default function Events() {
       <div className="p-3">
         {isLoading ? (
           <Loading className="p-8" text="Loading event links..." />
+        ) : queryError ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Error Loading Events</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              There was a problem loading the events. Please try again.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              Retry
+            </Button>
+          </div>
         ) : eventLinks && eventLinks.length > 0 ? (
           <div className="space-y-3">
             {eventLinks.map((eventLink) => (
