@@ -25,7 +25,6 @@ import Privacy from "./pages/settings/Privacy";
 import Notifications from "./pages/settings/Notifications";
 import Help from "./pages/settings/Help";
 import Location from "./pages/settings/Location";
-import Storage from "./pages/settings/Storage";
 import Welcome from "./pages/onboarding/Welcome";
 import RoleSelection from "./pages/onboarding/RoleSelection";
 import ProfileSetup from "./pages/onboarding/ProfileSetup";
@@ -165,11 +164,6 @@ function AppContent() {
         <Route path="/settings/location" element={
           <ProtectedRoute>
             <Location />
-          </ProtectedRoute>
-        } />
-        <Route path="/settings/storage" element={
-          <ProtectedRoute>
-            <Storage />
           </ProtectedRoute>
         } />
         

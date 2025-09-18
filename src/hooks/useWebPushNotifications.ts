@@ -10,13 +10,45 @@ export const useWebPushNotifications = () => {
 
     const initializeWebPushNotifications = async () => {
       try {
-        // Register service worker
-        if ('serviceWorker' in navigator) {
+        // Register service worker only in production
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if ('serviceWorker' in navigator && !isDevelopment) {
           try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+              scope: '/'
+            });
             console.log('Service Worker registered:', registration);
+            
+            // Handle service worker updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('New service worker installed, reloading...');
+                    window.location.reload();
+                  }
+                });
+              }
+            });
           } catch (error) {
             console.error('Service Worker registration failed:', error);
+          }
+        } else if (isDevelopment) {
+          console.log('Service Worker disabled in development mode');
+          
+          // Unregister any existing service workers in development
+          if ('serviceWorker' in navigator) {
+            try {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const registration of registrations) {
+                await registration.unregister();
+                console.log('Unregistered existing service worker for development');
+              }
+            } catch (error) {
+              console.error('Error unregistering service workers:', error);
+            }
           }
         }
 

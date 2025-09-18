@@ -6,7 +6,6 @@ import {
   FileText, 
   Bell, 
   Shield, 
-  HardDrive, 
   HelpCircle, 
   LogOut,
   ChevronRight,
@@ -21,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
 import { useQueryClient } from "@tanstack/react-query";
-import { CallTest } from "@/components/CallTest";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -69,9 +67,6 @@ export default function Profile() {
       case "location":
         navigate("/settings/location");
         break;
-      case "storage":
-        navigate("/settings/storage");
-        break;
       case "help":
         navigate("/settings/help");
         break;
@@ -97,8 +92,7 @@ export default function Profile() {
       title: "Settings",
       items: [
         { icon: Bell, label: "Notifications", sublabel: "Messages, updates", action: "notifications" },
-        { icon: Shield, label: "Privacy", sublabel: "Block contacts, security", action: "privacy" },
-        { icon: HardDrive, label: "Storage", sublabel: "Data usage settings", action: "storage" }
+        { icon: Shield, label: "Privacy", sublabel: "Block contacts, security", action: "privacy" }
       ]
     },
     {
@@ -269,10 +263,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Call Test Section */}
-      <div className="px-4 py-3 mt-4">
-        <CallTest />
-      </div>
 
     </div>
   );

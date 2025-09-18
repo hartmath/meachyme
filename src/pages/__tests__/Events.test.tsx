@@ -62,7 +62,8 @@ const renderEvents = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        retry: false
+        retry: false,
+        cacheTime: 0
       }
     }
   });
@@ -100,7 +101,7 @@ describe('Events Page', () => {
     });
   });
 
-  it('renders loading state initially', async () => {
+  it('renders loading state initially', () => {
     renderEvents();
     expect(screen.getByText('Loading event links...')).toBeInTheDocument();
   });
@@ -123,38 +124,53 @@ describe('Events Page', () => {
 
   it('shows post event form when button is clicked', async () => {
     renderEvents();
-    const postButton = await screen.findByText('Post Event');
-    fireEvent.click(postButton);
+    await waitFor(() => {
+      const postButton = screen.getByRole('button', { name: /^Post Event$/i });
+      fireEvent.click(postButton);
+    });
     expect(screen.getByText('Event Type *')).toBeInTheDocument();
   });
 
   it('shows event link input only for shared_link type', async () => {
     renderEvents();
-    const postButton = await screen.findByText('Post Event');
-    fireEvent.click(postButton);
+    
+    // Wait for initial render and click post button
+    await waitFor(() => {
+      const postButton = screen.getByRole('button', { name: /^Post Event$/i });
+      fireEvent.click(postButton);
+    });
 
     // Initially should show event link input (default type is shared_link)
     expect(screen.getByPlaceholderText('https://example.com/event')).toBeInTheDocument();
 
     // Change to created_event type
-    const typeSelect = screen.getByText('Share External Event Link');
+    const typeSelect = screen.getByRole('combobox');
     fireEvent.click(typeSelect);
-    fireEvent.click(screen.getByText('Create New Event'));
+    
+    await waitFor(() => {
+      const createEventOption = screen.getByText('Create New Event');
+      fireEvent.click(createEventOption);
+    });
 
     // Event link input should be gone
     expect(screen.queryByPlaceholderText('https://example.com/event')).not.toBeInTheDocument();
+    
     // But date and time inputs should appear
-    expect(screen.getByText('Event Date *')).toBeInTheDocument();
-    expect(screen.getByText('Event Time *')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Event Date \*/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Event Time \*/i)).toBeInTheDocument();
   });
 
   it('validates required fields before posting', async () => {
     renderEvents();
-    const postButton = await screen.findByText('Post Event');
-    fireEvent.click(postButton);
+    
+    // Wait for initial render and click post button
+    await waitFor(() => {
+      const postButton = screen.getByRole('button', { name: /^Post Event$/i });
+      fireEvent.click(postButton);
+    });
 
     // Try to post without required fields
-    const submitButton = screen.getByText('Post Event', { selector: 'button' });
+    const submitButton = screen.getAllByRole('button', { name: /Post Event/i })[1];
     fireEvent.click(submitButton);
 
     // Should show validation message
@@ -167,14 +183,14 @@ describe('Events Page', () => {
       select: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({
           data: null,
-          error: new Error('Failed to fetch')
+          error: { message: 'Failed to fetch' }
         })
       })
     });
 
     renderEvents();
     await waitFor(() => {
-      expect(screen.getByText('Error Loading Events')).toBeInTheDocument();
+      expect(screen.getByText('Error loading events')).toBeInTheDocument();
     });
   });
 

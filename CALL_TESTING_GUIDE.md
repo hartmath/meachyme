@@ -28,19 +28,7 @@ The WebRTC signaling system has been improved with the following fixes:
 - Two different browser tabs/windows (or different browsers)
 - Two different user accounts logged in
 
-### **Step 1: Basic WebRTC Test**
-1. Go to Profile page in one tab
-2. Scroll down to "WebRTC Call Diagnostic" section
-3. Click "Run Diagnostic Tests"
-4. Verify all tests pass:
-   - ✅ WebRTC is supported
-   - ✅ getUserMedia is supported  
-   - ✅ HTTPS connection detected
-   - ✅ Audio access granted
-   - ✅ Video access granted
-   - ✅ Peer connection created successfully
-
-### **Step 2: Test Call Flow**
+### **Step 1: Test Call Flow**
 1. **Tab 1 (Caller):**
    - Go to Calls page
    - Click call button (voice or video) next to a contact
@@ -56,7 +44,7 @@ The WebRTC signaling system has been improved with the following fixes:
    - Both tabs should show call interface
    - Should see "Call duration" counter
 
-### **Step 3: Test Call Controls**
+### **Step 2: Test Call Controls**
 1. **Mute/Unmute:**
    - Click microphone button
    - Should toggle between muted/unmuted states

@@ -2,28 +2,54 @@
 // Handles push notifications and badge updates
 
 const CACHE_NAME = 'chyme-v1';
-const urlsToCache = [
-  '/',
-  '/favicon.ico',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
-];
+const isDevelopment = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 // Install event
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  
+  if (isDevelopment) {
+    // Skip caching in development
+    self.skipWaiting();
+    return;
+  }
+  
+  const urlsToCache = [
+    '/',
+    '/favicon.ico',
+    '/manifest.json'
+  ];
+
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        console.log('Caching resources...');
+        return cache.addAll(urlsToCache);
+      })
+      .catch((error) => {
+        console.error('Cache installation failed:', error);
+      })
   );
 });
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  if (isDevelopment) {
+    // In development, just pass through without caching
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
         // Return cached version or fetch from network
-        return response || fetch(event.request);
+        return response || fetch(event.request).catch((error) => {
+          console.error('Fetch failed:', error);
+          // Return a fallback response for failed requests
+          if (event.request.destination === 'document') {
+            return caches.match('/');
+          }
+        });
       })
   );
 });
