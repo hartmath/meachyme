@@ -1,4 +1,4 @@
-import { MessageCircle, Home, Calendar, Phone, User } from "lucide-react";
+import { MessageCircle, Home, Calendar, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -6,7 +6,6 @@ const navItems = [
   { icon: MessageCircle, label: "Chats", path: "/chats" },
   { icon: Home, label: "Status", path: "/feed" },
   { icon: Calendar, label: "Events", path: "/events" },
-  { icon: Phone, label: "Calls", path: "/calls" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 

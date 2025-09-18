@@ -1,4 +1,4 @@
-import { ArrowLeft, MoreVertical, Phone, Video, UserPlus, Flag, Volume, VolumeX } from "lucide-react";
+import { ArrowLeft, MoreVertical, UserPlus, Flag, Volume, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -88,20 +88,6 @@ export function ChatHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 bg-popover border border-border shadow-lg z-50">
-          <DropdownMenuItem 
-            onClick={() => onMenuAction?.('voice')}
-            className="flex items-center space-x-2 cursor-pointer"
-          >
-            <Phone className="h-4 w-4" />
-            <span>Voice Call</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => onMenuAction?.('video')}
-            className="flex items-center space-x-2 cursor-pointer"
-          >
-            <Video className="h-4 w-4" />
-            <span>MEA Meet</span>
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={() => onMenuAction?.('mute')}

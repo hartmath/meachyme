@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Pin, PinOff, Phone, Video, Trash2, Shield, MoreVertical } from 'lucide-react';
+import { Pin, PinOff, Trash2, Shield, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,6 @@ interface ChatContextMenuProps {
   isBlocked?: boolean;
   position: { x: number; y: number };
   onClose: () => void;
-  onCall?: (type: 'voice' | 'video') => void;
   onDelete?: () => void;
 }
 
@@ -23,7 +22,6 @@ export function ChatContextMenu({
   isBlocked = false,
   position,
   onClose,
-  onCall,
   onDelete 
 }: ChatContextMenuProps) {
   const { toast } = useToast();
@@ -172,10 +170,6 @@ export function ChatContextMenu({
     }
   };
 
-  const handleCall = (type: 'voice' | 'video') => {
-    onCall?.(type);
-    onClose();
-  };
 
   // Position menu based on click position
   useEffect(() => {
@@ -211,27 +205,6 @@ export function ChatContextMenu({
           {isPinned ? 'Unpin' : 'Pin'}
         </Button>
 
-        {/* Voice Call */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start"
-          onClick={() => handleCall('voice')}
-        >
-          <Phone className="h-4 w-4 mr-2" />
-          Voice Call
-        </Button>
-
-        {/* MEA Meet */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start"
-          onClick={() => handleCall('video')}
-        >
-          <Video className="h-4 w-4 mr-2" />
-          MEA Meet
-        </Button>
 
         {/* Block/Unblock */}
         <Button
