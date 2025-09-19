@@ -24,6 +24,7 @@ import { Loading } from "@/components/Loading";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { MEAMeetRoom } from "@/components/MEAMeetRoom";
+import { MEAMeetSimple } from "@/components/MEAMeetSimple";
 import { useState } from "react";
 
 export default function Profile() {
@@ -33,6 +34,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [showQRCode, setShowQRCode] = useState(false);
   const [showMEAMeet, setShowMEAMeet] = useState(false);
+  const [showMEAMeetSimple, setShowMEAMeetSimple] = useState(false);
 
   // Fetch current user profile
   const { data: profile, isLoading, error } = useQuery({
@@ -81,7 +83,7 @@ export default function Profile() {
         setShowQRCode(true);
         break;
       case "mea_meet":
-        setShowMEAMeet(true);
+        setShowMEAMeetSimple(true);
         break;
       case "logout":
         signOut();
@@ -308,6 +310,13 @@ export default function Profile() {
             navigate(`/meet/${meetingId}`);
           }}
           onClose={() => setShowMEAMeet(false)}
+        />
+      )}
+
+      {/* MEA Meet Simple Modal */}
+      {showMEAMeetSimple && (
+        <MEAMeetSimple
+          onClose={() => setShowMEAMeetSimple(false)}
         />
       )}
 

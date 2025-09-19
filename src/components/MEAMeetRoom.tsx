@@ -94,11 +94,19 @@ export function MEAMeetRoom({ onJoinMeeting, onClose }: MEAMeetRoomProps) {
     setIsCreating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to create a meeting",
+          variant: "destructive"
+        });
+        return;
+      }
 
       const meetingId = generateMeetingId();
       
-      const { data: meeting, error } = await supabase
+      // First, try to create the meeting
+      const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .insert({
           id: meetingId,
@@ -106,21 +114,30 @@ export function MEAMeetRoom({ onJoinMeeting, onClose }: MEAMeetRoomProps) {
           description: meetingDescription.trim() || null,
           host_id: user.id,
           is_active: true,
-          participant_count: 1
+          participant_count: 0
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (meetingError) {
+        console.error('Meeting creation error:', meetingError);
+        throw new Error(`Failed to create meeting: ${meetingError.message}`);
+      }
 
-      // Add host as participant
-      await supabase
+      // Then add host as participant
+      const { error: participantError } = await supabase
         .from('meeting_participants')
         .insert({
           meeting_id: meetingId,
           user_id: user.id,
           joined_at: new Date().toISOString()
         });
+
+      if (participantError) {
+        console.error('Participant creation error:', participantError);
+        // Don't throw here, the meeting was created successfully
+        console.warn('Failed to add host as participant, but meeting was created');
+      }
 
       toast({
         title: "Meeting Created",
@@ -130,9 +147,10 @@ export function MEAMeetRoom({ onJoinMeeting, onClose }: MEAMeetRoomProps) {
       onJoinMeeting(meetingId, meetingName, true);
     } catch (error) {
       console.error('Failed to create meeting:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Failed to Create Meeting",
-        description: "Please try again",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
