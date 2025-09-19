@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronRight,
   Camera,
-  QrCode
+  QrCode,
+  Video
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
+import { MEAMeetRoom } from "@/components/MEAMeetRoom";
 import { useState } from "react";
 
 export default function Profile() {
@@ -30,6 +32,7 @@ export default function Profile() {
   const { signOut } = useAuth();
   const queryClient = useQueryClient();
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showMEAMeet, setShowMEAMeet] = useState(false);
 
   // Fetch current user profile
   const { data: profile, isLoading, error } = useQuery({
@@ -77,6 +80,9 @@ export default function Profile() {
       case "qrcode":
         setShowQRCode(true);
         break;
+      case "mea_meet":
+        setShowMEAMeet(true);
+        break;
       case "logout":
         signOut();
         break;
@@ -92,6 +98,7 @@ export default function Profile() {
       items: [
         { icon: Users, label: "My Network", sublabel: "Connect with event professionals", action: "network" },
         { icon: FileText, label: "My Posts", sublabel: "View your feed posts", action: "posts" },
+        { icon: Video, label: "MEA Meet", sublabel: "Start video conference", action: "mea_meet" },
         { icon: QrCode, label: "My QR Code", sublabel: "Share your profile", action: "qrcode" },
         { icon: MapPin, label: "Location", sublabel: profile?.location || "Not set", action: "location" }
       ]
@@ -291,6 +298,17 @@ export default function Profile() {
             />
           </div>
         </div>
+      )}
+
+      {/* MEA Meet Modal */}
+      {showMEAMeet && (
+        <MEAMeetRoom
+          onJoinMeeting={(meetingId, meetingName, isHost) => {
+            setShowMEAMeet(false);
+            navigate(`/meet/${meetingId}`);
+          }}
+          onClose={() => setShowMEAMeet(false)}
+        />
       )}
 
     </div>

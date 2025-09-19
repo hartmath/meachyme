@@ -29,6 +29,7 @@ import ProfileSetup from "./pages/onboarding/ProfileSetup";
 import GroupChatList from "./pages/GroupChatList";
 import CreateGroup from "./pages/CreateGroup";
 import GroupChatDetail from "./pages/GroupChatDetail";
+import MEAMeet from "./pages/MEAMeet";
 import GroupSettings from "./pages/GroupSettings";
 import NotFound from "./pages/NotFound";
 import Test from "./pages/Test";
@@ -151,6 +152,13 @@ function AppContent() {
         <Route path="/settings/location" element={
           <ProtectedRoute>
             <Location />
+          </ProtectedRoute>
+        } />
+        
+        {/* MEA Meet routes */}
+        <Route path="/meet/:meetingId" element={
+          <ProtectedRoute>
+            <MEAMeet />
           </ProtectedRoute>
         } />
         
