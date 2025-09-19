@@ -1,8 +1,19 @@
 // Service Worker for Chyme App
-// Handles push notifications and badge updates
+// Handles offline caching, push notifications and badge updates
 
-const CACHE_NAME = 'chyme-v1';
+const CACHE_NAME = 'chyme-v2';
+const STATIC_CACHE = 'chyme-static-v2';
+const DYNAMIC_CACHE = 'chyme-dynamic-v2';
 const isDevelopment = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
+// Resources to cache for offline use
+const STATIC_RESOURCES = [
+  '/',
+  '/favicon.ico',
+  '/manifest.json',
+  '/mea-logo.jpg',
+  '/placeholder.svg'
+];
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -14,17 +25,15 @@ self.addEventListener('install', (event) => {
     return;
   }
   
-  const urlsToCache = [
-    '/',
-    '/favicon.ico',
-    '/manifest.json'
-  ];
-
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Caching resources...');
-        return cache.addAll(urlsToCache);
+        console.log('Caching static resources...');
+        return cache.addAll(STATIC_RESOURCES);
+      })
+      .then(() => {
+        console.log('Static resources cached successfully');
+        return self.skipWaiting();
       })
       .catch((error) => {
         console.error('Cache installation failed:', error);
@@ -32,24 +41,98 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event
+// Activate event
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        console.log('Service Worker activated');
+        return self.clients.claim();
+      })
+  );
+});
+
+// Fetch event with comprehensive offline support
 self.addEventListener('fetch', (event) => {
   if (isDevelopment) {
     // In development, just pass through without caching
     return;
   }
   
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+  
+  // Skip external requests (except Supabase)
+  if (url.origin !== location.origin && !url.hostname.includes('supabase')) {
+    return;
+  }
+  
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request).catch((error) => {
-          console.error('Fetch failed:', error);
-          // Return a fallback response for failed requests
-          if (event.request.destination === 'document') {
-            return caches.match('/');
-          }
-        });
+    caches.match(request)
+      .then((cachedResponse) => {
+        // Return cached version if available
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        
+        // Try to fetch from network
+        return fetch(request)
+          .then((networkResponse) => {
+            // Clone the response
+            const responseToCache = networkResponse.clone();
+            
+            // Cache successful responses
+            if (networkResponse.status === 200) {
+              caches.open(DYNAMIC_CACHE)
+                .then((cache) => {
+                  cache.put(request, responseToCache);
+                });
+            }
+            
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.error('Network fetch failed:', error);
+            
+            // Return offline fallbacks
+            if (request.destination === 'document') {
+              return caches.match('/');
+            }
+            
+            if (request.destination === 'image') {
+              return caches.match('/placeholder.svg');
+            }
+            
+            // Return a basic offline response
+            return new Response(
+              JSON.stringify({ 
+                error: 'Offline', 
+                message: 'This content is not available offline' 
+              }),
+              {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'application/json' }
+              }
+            );
+          });
       })
   );
 });

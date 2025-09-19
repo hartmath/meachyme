@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QueuedMessage {
   id: string;
@@ -9,17 +10,33 @@ interface QueuedMessage {
   messageType?: string;
   attachmentUrl?: string;
   timestamp: number;
+  retryCount?: number;
+}
+
+interface OfflineData {
+  conversations: any[];
+  messages: any[];
+  profiles: any[];
+  lastSync: number;
 }
 
 export function useOfflineSupport() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queuedMessages, setQueuedMessages] = useState<QueuedMessage[]>([]);
+  const [offlineData, setOfflineData] = useState<OfflineData>({
+    conversations: [],
+    messages: [],
+    profiles: [],
+    lastSync: 0
+  });
+  const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       processQueuedMessages();
+      syncOfflineData();
     };
 
     const handleOffline = () => {
@@ -29,21 +46,38 @@ export function useOfflineSupport() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Load queued messages from localStorage
-    const saved = localStorage.getItem('chyme-queued-messages');
-    if (saved) {
-      try {
-        setQueuedMessages(JSON.parse(saved));
-      } catch (error) {
-        console.error('Failed to load queued messages:', error);
-      }
-    }
+    // Load offline data from localStorage
+    loadOfflineData();
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const loadOfflineData = () => {
+    try {
+      // Load queued messages
+      const savedMessages = localStorage.getItem('chyme-queued-messages');
+      if (savedMessages) {
+        setQueuedMessages(JSON.parse(savedMessages));
+      }
+
+      // Load offline data
+      const savedData = localStorage.getItem('chyme-offline-data');
+      if (savedData) {
+        setOfflineData(JSON.parse(savedData));
+      }
+    } catch (error) {
+      console.error('Failed to load offline data:', error);
+    }
+  };
+
+  const saveOfflineData = (data: Partial<OfflineData>) => {
+    const updatedData = { ...offlineData, ...data };
+    setOfflineData(updatedData);
+    localStorage.setItem('chyme-offline-data', JSON.stringify(updatedData));
+  };
 
   const queueMessage = (message: Omit<QueuedMessage, 'id' | 'timestamp'>) => {
     const queuedMessage: QueuedMessage = {
