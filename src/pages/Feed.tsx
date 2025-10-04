@@ -48,11 +48,16 @@ export default function Feed() {
   });
 
   // Fetch status posts from people you've messaged + your own posts
-  const { data: statusPosts, isLoading } = useQuery({
+  const { data: statusPosts, isLoading, error } = useQuery({
     queryKey: ['status-posts'],
     queryFn: async () => {
+      console.log('Fetching status posts...');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        console.log('No user found');
+        return [];
+      }
+      console.log('User found:', user.id);
 
       // Get users I've communicated with
       const { data: conversations } = await supabase
@@ -70,32 +75,37 @@ export default function Feed() {
       // Always include current user's posts
       const userIdsToFetch = [...contactUserIds, user.id];
 
-      // Get status posts from contacts + current user
+      // Get status posts with profiles in a single optimized query
       const { data: posts, error: postsError } = await supabase
         .from('status_posts')
-        .select('*')
+        .select(`
+          *,
+          profiles!status_posts_user_id_fkey (
+            full_name,
+            avatar_url,
+            user_type
+          )
+        `)
         .in('user_id', userIdsToFetch)
         .gt('expires_at', new Date().toISOString()) // Only show non-expired posts
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (postsError) throw postsError;
+      if (postsError) {
+        console.error('Error fetching status posts:', postsError);
+        throw postsError;
+      }
 
-      // Get profiles for each post
-      const postsWithProfiles = await Promise.all(
-        (posts || []).map(async (post) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, avatar_url, user_type')
-            .eq('user_id', post.user_id)
-            .maybeSingle();
-          
-          return { ...post, profile };
-        })
-      );
-
-      return postsWithProfiles;
-    }
+      // Transform the data to match expected format
+      const transformedPosts = (posts || []).map(post => ({
+        ...post,
+        profile: post.profiles
+      }));
+      console.log('Status posts fetched:', transformedPosts);
+      return transformedPosts;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes - status posts change frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Set up real-time subscription for new status posts
@@ -283,6 +293,10 @@ export default function Feed() {
         <div className="divide-y divide-border">
           {isLoading ? (
             <Loading className="p-8" text="Loading posts..." />
+          ) : error ? (
+            <div className="p-8 text-center">
+              <p className="text-red-500">Error loading posts: {error.message}</p>
+            </div>
           ) : statusPosts && statusPosts.length > 0 ? (
             statusPosts.map((post) => (
               <article key={post.id} className="p-3">
@@ -363,6 +377,9 @@ export default function Feed() {
               <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-medium text-foreground mb-2">No status posts yet</h3>
               <p className="text-sm text-muted-foreground mb-4">Be the first to share what's happening in your event world!</p>
+              <div className="text-xs text-muted-foreground">
+                Debug: isLoading={isLoading.toString()}, statusPosts={statusPosts?.length || 0}, error={error?.message || 'none'}
+              </div>
               <Button onClick={() => navigate("/create-status")}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Status

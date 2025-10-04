@@ -146,9 +146,10 @@ export function StatusInteractions({
       });
     },
     onError: (error) => {
+      console.error('Share mutation error:', error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Share Error",
+        description: "Failed to record share. The link was still copied to clipboard.",
         variant: "destructive"
       });
     }
@@ -193,8 +194,38 @@ export function StatusInteractions({
     likeMutation.mutate();
   };
 
-  const handleShare = () => {
-    shareMutation.mutate();
+  const handleShare = async () => {
+    try {
+      // First, try to share using the Web Share API if available
+      if (navigator.share) {
+        const statusUrl = `${window.location.origin}/status/${statusId}`;
+        await navigator.share({
+          title: 'Check out this status on Chyme',
+          text: 'Look at this status post!',
+          url: statusUrl
+        });
+        
+        // If sharing was successful, also record it in the database
+        shareMutation.mutate();
+        return;
+      }
+      
+      // Fallback: Copy link to clipboard
+      const statusUrl = `${window.location.origin}/status/${statusId}`;
+      await navigator.clipboard.writeText(statusUrl);
+      
+      toast({
+        title: "Link copied!",
+        description: "Status link copied to clipboard",
+      });
+      
+      // Record the share in the database
+      shareMutation.mutate();
+    } catch (error) {
+      console.error('Share error:', error);
+      // If Web Share API fails, still try to record in database
+      shareMutation.mutate();
+    }
   };
 
   const handleComment = () => {
@@ -236,7 +267,8 @@ export function StatusInteractions({
             onClick={handleShare}
             disabled={shareMutation.isPending}
           >
-            <Share className={`h-3 w-3 ${interactions?.user_shared ? 'fill-current' : ''}`} />
+            <Share className={`h-3 w-3 mr-1 ${interactions?.user_shared ? 'fill-current' : ''}`} />
+            <span className="text-xs">{interactions?.share_count || 0}</span>
           </Button>
         </div>
       </div>

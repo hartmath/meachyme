@@ -70,40 +70,36 @@ export default function Chats() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get all direct messages where current user is sender or recipient
+      // Get latest message for each conversation with profile data in a single query
       const { data: messages, error } = await supabase
         .from('direct_messages')
-        .select('*')
+        .select(`
+          id,
+          content,
+          created_at,
+          sender_id,
+          recipient_id,
+          sender:sender_id (user_id, full_name, avatar_url, user_type),
+          recipient:recipient_id (user_id, full_name, avatar_url, user_type)
+        `)
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to recent messages for better performance
 
       if (error) {
         console.error('Error fetching conversations:', error);
         return [];
       }
 
-      // Get unique user IDs to fetch profiles
-      const userIds = new Set<string>();
-      messages?.forEach((message) => {
-        if (message.sender_id) userIds.add(message.sender_id);
-        if (message.recipient_id) userIds.add(message.recipient_id);
-      });
-
-      // Fetch profiles for all users
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url, user_type')
-        .in('user_id', Array.from(userIds));
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-        return [];
-      }
-
-      // Create a map of user profiles
+      // Create a map of user profiles from the joined data
       const profileMap = new Map();
-      profiles?.forEach((profile) => {
-        profileMap.set(profile.user_id, profile);
+      messages?.forEach((message) => {
+        if (message.sender) {
+          profileMap.set(message.sender.user_id, message.sender);
+        }
+        if (message.recipient) {
+          profileMap.set(message.recipient.user_id, message.recipient);
+        }
       });
 
       // Group messages by conversation partner
@@ -157,7 +153,9 @@ export default function Chats() {
         if (!a.is_pinned && b.is_pinned) return 1;
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
-    }
+    },
+    staleTime: 30 * 1000, // 30 seconds - conversations change frequently
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch current user's profile

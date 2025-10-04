@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,36 +9,43 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Chats from "./pages/Chats";
-import Feed from "./pages/Feed";
-import Events from "./pages/Events";
-import Profile from "./pages/Profile";
-import ProfileEdit from "./pages/ProfileEdit";
-import ChatDetail from "./pages/ChatDetail";
-import CreateStatus from "./pages/CreateStatus";
-import ContactDiscovery from "./pages/ContactDiscovery";
-import Privacy from "./pages/settings/Privacy";
-import Notifications from "./pages/settings/Notifications";
-import Help from "./pages/settings/Help";
-import Location from "./pages/settings/Location";
-import Welcome from "./pages/onboarding/Welcome";
-import RoleSelection from "./pages/onboarding/RoleSelection";
-import ProfileSetup from "./pages/onboarding/ProfileSetup";
-import GroupChatList from "./pages/GroupChatList";
-import CreateGroup from "./pages/CreateGroup";
-import GroupChatDetail from "./pages/GroupChatDetail";
-import MEAMeet from "./pages/MEAMeet";
-import GroupSettings from "./pages/GroupSettings";
-import NotFound from "./pages/NotFound";
-import Test from "./pages/Test";
+import { Loading } from "@/components/Loading";
+import { usePerformance } from "@/hooks/usePerformance";
+
+// Lazy load pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Chats = lazy(() => import("./pages/Chats"));
+const Feed = lazy(() => import("./pages/Feed"));
+const Events = lazy(() => import("./pages/Events"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
+const ChatDetail = lazy(() => import("./pages/ChatDetail"));
+const CreateStatus = lazy(() => import("./pages/CreateStatus"));
+const ContactDiscovery = lazy(() => import("./pages/ContactDiscovery"));
+const Privacy = lazy(() => import("./pages/settings/Privacy"));
+const Notifications = lazy(() => import("./pages/settings/Notifications"));
+const Help = lazy(() => import("./pages/settings/Help"));
+const Location = lazy(() => import("./pages/settings/Location"));
+const Welcome = lazy(() => import("./pages/onboarding/Welcome"));
+const RoleSelection = lazy(() => import("./pages/onboarding/RoleSelection"));
+const ProfileSetup = lazy(() => import("./pages/onboarding/ProfileSetup"));
+const GroupChatList = lazy(() => import("./pages/GroupChatList"));
+const CreateGroup = lazy(() => import("./pages/CreateGroup"));
+const GroupChatDetail = lazy(() => import("./pages/GroupChatDetail"));
+const MEAMeet = lazy(() => import("./pages/MEAMeet"));
+const GroupSettings = lazy(() => import("./pages/GroupSettings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Test = lazy(() => import("./pages/Test"));
 
 const queryClient = new QueryClient();
 
 function AppContent() {
   // Add error boundary for route-level errors
   const [routeError, setRouteError] = useState<Error | null>(null);
+  
+  // Monitor performance
+  usePerformance();
 
   // Reset error when route changes
   useEffect(() => {
@@ -59,7 +66,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Routes>
+      <Suspense fallback={<Loading />}>
+        <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
@@ -181,7 +189,8 @@ function AppContent() {
         
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </div>
   );
 }
@@ -191,16 +200,19 @@ const App = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 3,
+        retry: 2,
         retryDelay: 1000,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 10 * 60 * 1000, // 10 minutes - increased for better performance
+        gcTime: 30 * 60 * 1000, // 30 minutes - increased for better caching
         refetchOnWindowFocus: false,
-        refetchOnReconnect: true
+        refetchOnReconnect: true,
+        refetchOnMount: false, // Don't refetch on mount if data is fresh
+        networkMode: 'online' // Only run queries when online
       },
       mutations: {
-        retry: 3,
-        retryDelay: 1000
+        retry: 1, // Reduced retries for faster failure handling
+        retryDelay: 1000,
+        networkMode: 'online'
       }
     },
   });

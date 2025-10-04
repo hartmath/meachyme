@@ -10,7 +10,6 @@ import {
   LogOut,
   ChevronRight,
   Camera,
-  QrCode,
   Video
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loading } from "@/components/Loading";
 import { useQueryClient } from "@tanstack/react-query";
-import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { MEAMeetRoom } from "@/components/MEAMeetRoom";
 import { MEAMeetSimple } from "@/components/MEAMeetSimple";
 import { useState } from "react";
@@ -32,7 +30,6 @@ export default function Profile() {
   const { toast } = useToast();
   const { signOut } = useAuth();
   const queryClient = useQueryClient();
-  const [showQRCode, setShowQRCode] = useState(false);
   const [showMEAMeet, setShowMEAMeet] = useState(false);
   const [showMEAMeetSimple, setShowMEAMeetSimple] = useState(false);
 
@@ -79,9 +76,6 @@ export default function Profile() {
       case "help":
         navigate("/settings/help");
         break;
-      case "qrcode":
-        setShowQRCode(true);
-        break;
       case "mea_meet":
         setShowMEAMeetSimple(true);
         break;
@@ -101,7 +95,6 @@ export default function Profile() {
         { icon: Users, label: "My Network", sublabel: "Connect with event professionals", action: "network" },
         { icon: FileText, label: "My Posts", sublabel: "View your feed posts", action: "posts" },
         { icon: Video, label: "MEA Meet", sublabel: "Start video conference", action: "mea_meet" },
-        { icon: QrCode, label: "My QR Code", sublabel: "Share your profile", action: "qrcode" },
         { icon: MapPin, label: "Location", sublabel: profile?.location || "Not set", action: "location" }
       ]
     },
@@ -280,27 +273,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* QR Code Modal */}
-      {showQRCode && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowQRCode(false)}
-              className="absolute -top-2 -right-2 z-10 bg-background border border-border"
-            >
-              ×
-            </Button>
-            <QRCodeGenerator
-              data={`${window.location.origin}/profile/${profile?.user_id || 'user'}`}
-              title="My Profile QR Code"
-              description="Share this QR code to let others connect with you"
-              size={250}
-            />
-          </div>
-        </div>
-      )}
 
       {/* MEA Meet Modal */}
       {showMEAMeet && (

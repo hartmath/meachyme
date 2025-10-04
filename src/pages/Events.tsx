@@ -97,17 +97,8 @@ export default function Events() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get user's profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profile) throw new Error('Profile not found');
-
       const eventData: any = {
-        user_id: profile.id,
+        user_id: user.id,
         event_type: type,
         title: title,
         description: description
@@ -153,9 +144,10 @@ export default function Events() {
       });
     },
     onError: (error) => {
+      console.error('Event posting error:', error);
       toast({
         title: "Error",
-        description: "Failed to post event. Please try again.",
+        description: `Failed to post event: ${error.message}. The events table may not be set up yet.`,
         variant: "destructive",
       });
     }
@@ -451,6 +443,25 @@ export default function Events() {
             >
               Retry
             </Button>
+          </div>
+        ) : queryError ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="text-orange-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Events table not set up</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              The events functionality requires a database table to be created. Please contact the administrator to set up the events table.
+            </p>
+            <div className="bg-muted/50 p-4 rounded-lg text-sm text-muted-foreground">
+              <p className="font-medium mb-2">To fix this:</p>
+              <ol className="list-decimal list-inside space-y-1 text-left">
+                <li>Run the migration: <code className="bg-background px-1 rounded">supabase/migrations/20250115000002_create_shared_event_links.sql</code></li>
+                <li>Or create the table manually in your Supabase dashboard</li>
+              </ol>
+            </div>
           </div>
         ) : eventLinks && eventLinks.length > 0 ? (
           <div className="space-y-3">
