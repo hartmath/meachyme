@@ -70,17 +70,10 @@ export default function Feed() {
       // Always include current user's posts
       const userIdsToFetch = [...contactUserIds, user.id];
 
-      // Get status posts with profiles in a single optimized query
+      // Get status posts
       const { data: posts, error: postsError } = await supabase
         .from('status_posts')
-        .select(`
-          *,
-          profiles!inner (
-            full_name,
-            avatar_url,
-            user_type
-          )
-        `)
+        .select('*')
         .in('user_id', userIdsToFetch)
         .gt('expires_at', new Date().toISOString()) // Only show non-expired posts
         .order('created_at', { ascending: false })
@@ -91,10 +84,23 @@ export default function Feed() {
         throw postsError;
       }
 
+      // Get profiles for all users who have status posts
+      const postUserIds = [...new Set(posts?.map(post => post.user_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url, user_type')
+        .in('user_id', postUserIds);
+
+      // Create a map of user profiles
+      const profileMap = new Map();
+      profiles?.forEach((profile) => {
+        profileMap.set(profile.user_id, profile);
+      });
+
       // Transform the data to match expected format
       return (posts || []).map(post => ({
         ...post,
-        profile: post.profiles
+        profile: profileMap.get(post.user_id)
       }));
     },
     staleTime: 2 * 60 * 1000, // 2 minutes - status posts change frequently
