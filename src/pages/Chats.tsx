@@ -64,7 +64,7 @@ export default function Chats() {
   };
 
   // Fetch conversations from Supabase
-  const { data: conversations, isLoading } = useQuery({
+  const { data: conversations, isLoading, error } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -78,9 +78,7 @@ export default function Chats() {
           content,
           created_at,
           sender_id,
-          recipient_id,
-          sender:sender_id (user_id, full_name, avatar_url, user_type),
-          recipient:recipient_id (user_id, full_name, avatar_url, user_type)
+          recipient_id
         `)
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
@@ -91,15 +89,22 @@ export default function Chats() {
         return [];
       }
 
-      // Create a map of user profiles from the joined data
+      // Get unique user IDs from messages
+      const userIds = [...new Set([
+        ...messages?.map(m => m.sender_id) || [],
+        ...messages?.map(m => m.recipient_id) || []
+      ])];
+
+      // Fetch profiles for all users
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url, user_type')
+        .in('user_id', userIds);
+
+      // Create a map of user profiles
       const profileMap = new Map();
-      messages?.forEach((message) => {
-        if (message.sender) {
-          profileMap.set(message.sender.user_id, message.sender);
-        }
-        if (message.recipient) {
-          profileMap.set(message.recipient.user_id, message.recipient);
-        }
+      profiles?.forEach((profile) => {
+        profileMap.set(profile.user_id, profile);
       });
 
       // Group messages by conversation partner
@@ -122,7 +127,7 @@ export default function Chats() {
               hour: '2-digit', 
               minute: '2-digit' 
             }),
-            unread: isCurrentUserSender ? 0 : (message.is_read ? 0 : 1),
+            unread: isCurrentUserSender ? 0 : 1, // Simplified unread logic
             avatar: partner.full_name ? partner.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U',
             avatar_url: partner.avatar_url,
             is_pinned: false, // Default values - will be updated from user preferences
@@ -131,11 +136,18 @@ export default function Chats() {
         }
       });
 
-      // Get user preferences for pinned and blocked conversations
-      const { data: preferences } = await supabase
-        .from('user_preferences')
-        .select('conversation_id, is_pinned, is_blocked')
-        .eq('user_id', user.id);
+      // Get user preferences for pinned and blocked conversations (if table exists)
+      let preferences = [];
+      try {
+        const { data: prefsData } = await supabase
+          .from('user_preferences')
+          .select('conversation_id, is_pinned, is_blocked')
+          .eq('user_id', user.id);
+        preferences = prefsData || [];
+      } catch (error) {
+        console.log('User preferences table not found, using defaults');
+        preferences = [];
+      }
 
       // Apply preferences to conversations
       const conversationsWithPreferences = Array.from(conversationMap.values()).map(conv => {
@@ -148,11 +160,13 @@ export default function Chats() {
       });
 
       // Sort conversations: pinned first, then by last message time
-      return conversationsWithPreferences.sort((a, b) => {
+      const sortedConversations = conversationsWithPreferences.sort((a, b) => {
         if (a.is_pinned && !b.is_pinned) return -1;
         if (!a.is_pinned && b.is_pinned) return 1;
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
+      
+      return sortedConversations;
     },
     staleTime: 30 * 1000, // 30 seconds - conversations change frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -227,6 +241,10 @@ export default function Chats() {
       <div className="flex-1 overflow-y-auto pb-20">
         {isLoading ? (
           <Loading className="p-8" text="Loading conversations..." />
+        ) : error ? (
+          <div className="p-8 text-center">
+            <p className="text-red-500">Error loading conversations: {error.message}</p>
+          </div>
         ) : conversations && conversations.length > 0 ? (
           conversations.map((chat) => (
             <div
