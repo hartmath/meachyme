@@ -577,12 +577,12 @@ export default function Events() {
           </div>
         )}
         
-        {/* Debug Components - Remove in production */}
-        <div className="mt-8 space-y-4">
+        {/* Debug Components - Temporarily disabled */}
+        {/* <div className="mt-8 space-y-4">
           <AuthStatus />
           <NavigationTest />
           <AppDebugger />
-        </div>
+        </div> */}
       </div>
     </div>
   );

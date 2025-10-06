@@ -75,12 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Handle auth events
             if (event === 'SIGNED_IN') {
-              // Ensure user has a profile
-              if (session?.user) {
-                ensureUserProfile().catch(error => {
-                  console.warn('Failed to ensure user profile:', error);
-                });
-              }
+              // Ensure user has a profile (temporarily disabled)
+              // if (session?.user) {
+              //   ensureUserProfile().catch(error => {
+              //     console.warn('Failed to ensure user profile:', error);
+              //   });
+              // }
               
               // Check if user needs onboarding
               const onboardingCompleted = localStorage.getItem("onboarding_completed");
