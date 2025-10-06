@@ -10,9 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ChatContextMenu, useChatContextMenu } from "@/components/ChatContextMenu";
 import { Loading } from "@/components/Loading";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Chats() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const { contextMenu, openContextMenu, closeContextMenu } = useChatContextMenu();
@@ -66,9 +68,15 @@ export default function Chats() {
   // Fetch conversations from Supabase
   const { data: conversations, isLoading, error } = useQuery({
     queryKey: ['conversations'],
+    enabled: !!user, // Only run if user is authenticated
     queryFn: async () => {
+      console.log('[CHATS] Starting conversations query...');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      console.log('[CHATS] User check:', { hasUser: !!user, userId: user?.id });
+      if (!user) {
+        console.log('[CHATS] No user found, returning empty array');
+        return [];
+      }
 
       // Get latest message for each conversation with profile data in a single query
       const { data: messages, error } = await supabase
@@ -85,9 +93,11 @@ export default function Chats() {
         .limit(100); // Limit to recent messages for better performance
 
       if (error) {
-        console.error('Error fetching conversations:', error);
+        console.error('[CHATS] Error fetching messages:', error);
         return [];
       }
+      
+      console.log('[CHATS] Messages fetched:', { count: messages?.length || 0 });
 
       // Get unique user IDs from messages
       const userIds = [...new Set([

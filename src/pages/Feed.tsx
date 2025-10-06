@@ -6,9 +6,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
 import { StatusInteractions } from "@/components/StatusInteractions";
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Feed() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch current user profile
@@ -50,6 +52,7 @@ export default function Feed() {
   // Fetch status posts from people you've messaged + your own posts
   const { data: statusPosts, isLoading, error } = useQuery({
     queryKey: ['status-posts'],
+    enabled: !!user, // Only run if user is authenticated
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -62,9 +65,9 @@ export default function Feed() {
 
       // Get unique user IDs from conversations (including current user)
       const contactUserIds = [...new Set(
-        conversations
-          ?.map(conv => conv.sender_id === user.id ? conv.recipient_id : conv.sender_id)
-          .filter(id => id !== user.id) || []
+        (conversations || [])
+          .map((conv: any) => conv.sender_id === user.id ? conv.recipient_id : conv.sender_id)
+          .filter((id: string) => id !== user.id)
       )];
 
       // Always include current user's posts
@@ -85,7 +88,7 @@ export default function Feed() {
       }
 
       // Get profiles for all users who have status posts
-      const postUserIds = [...new Set(posts?.map(post => post.user_id) || [])];
+      const postUserIds = [...new Set((posts || []).map((post: any) => post.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, user_type')
@@ -93,12 +96,12 @@ export default function Feed() {
 
       // Create a map of user profiles
       const profileMap = new Map();
-      profiles?.forEach((profile) => {
+      (profiles || []).forEach((profile: any) => {
         profileMap.set(profile.user_id, profile);
       });
 
       // Transform the data to match expected format
-      return (posts || []).map(post => ({
+      return (posts || []).map((post: any) => ({
         ...post,
         profile: profileMap.get(post.user_id)
       }));
@@ -142,7 +145,7 @@ export default function Feed() {
         .insert({
           status_id: statusId,
           viewer_id: user.id
-        });
+        } as any);
     }
   });
 
@@ -188,15 +191,15 @@ export default function Feed() {
           onClick={() => navigate("/create-status")}
         >
           <div className="relative">
-            {currentProfile?.avatar_url ? (
+            {(currentProfile as any)?.avatar_url ? (
               <img 
-                src={currentProfile.avatar_url} 
-                alt={currentProfile.full_name || 'You'} 
+                src={(currentProfile as any).avatar_url} 
+                alt={(currentProfile as any).full_name || 'You'} 
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
               <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-                {getInitials(currentProfile?.full_name || 'You')}
+                {getInitials((currentProfile as any)?.full_name || 'You')}
               </div>
             )}
             {myStatusPosts && myStatusPosts.length > 0 ? (
@@ -213,7 +216,7 @@ export default function Feed() {
             <h3 className="font-medium text-foreground text-sm">My status</h3>
             {myStatusPosts && myStatusPosts.length > 0 ? (
               <p className="text-xs text-muted-foreground">
-                Active • {getTimeAgo(myStatusPosts[0].created_at)}
+                Active • {getTimeAgo((myStatusPosts[0] as any).created_at)}
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">Tap to add status update</p>

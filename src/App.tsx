@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Loading } from "@/components/Loading";
 import { usePerformance } from "@/hooks/usePerformance";
+import { DataFetchingDebugger } from "@/components/DataFetchingDebugger";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -37,8 +38,7 @@ const MEAMeet = lazy(() => import("./pages/MEAMeet"));
 const GroupSettings = lazy(() => import("./pages/GroupSettings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Test = lazy(() => import("./pages/Test"));
-
-const queryClient = new QueryClient();
+const QuickTest = lazy(() => import("./pages/QuickTest"));
 
 function AppContent() {
   // Add error boundary for route-level errors
@@ -66,12 +66,14 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DataFetchingDebugger />
       <Suspense fallback={<Loading />}>
         <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/test" element={<Test />} />
+        <Route path="/quick-test" element={<QuickTest />} />
         
         {/* Protected routes */}
         <Route path="/chats" element={
@@ -200,19 +202,27 @@ const App = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 2,
+        retry: (failureCount, error) => {
+          // Don't retry on authentication errors
+          if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) {
+            return false;
+          }
+          return failureCount < 2;
+        },
         retryDelay: 1000,
-        staleTime: 10 * 60 * 1000, // 10 minutes - increased for better performance
-        gcTime: 30 * 60 * 1000, // 30 minutes - increased for better caching
+        staleTime: 5 * 60 * 1000, // 5 minutes - reduced for more frequent updates
+        gcTime: 15 * 60 * 1000, // 15 minutes - reduced for better memory management
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
-        refetchOnMount: false, // Don't refetch on mount if data is fresh
-        networkMode: 'online' // Only run queries when online
+        refetchOnMount: true, // Always refetch on mount to ensure fresh data
+        networkMode: 'online', // Only run queries when online
+        throwOnError: false // Don't throw errors, handle them gracefully
       },
       mutations: {
-        retry: 1, // Reduced retries for faster failure handling
+        retry: 1,
         retryDelay: 1000,
-        networkMode: 'online'
+        networkMode: 'online',
+        throwOnError: false
       }
     },
   });
