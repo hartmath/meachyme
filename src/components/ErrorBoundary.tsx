@@ -39,11 +39,11 @@ export class ErrorBoundary extends Component<Props, State> {
                 Something went wrong with the app. Here are the details:
               </p>
               
-              {this.state.error && (
+            {this.state.error && (
                 <div className="bg-red-50 border border-red-200 rounded p-3">
                   <h4 className="font-semibold text-red-800 mb-2">Error:</h4>
                   <p className="text-sm text-red-700 font-mono">
-                    {this.state.error.message}
+                  {this.state.error.message}
                   </p>
                 </div>
               )}
@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   <h4 className="font-semibold text-gray-800 mb-2">Stack Trace:</h4>
                   <pre className="text-xs text-gray-700 overflow-auto max-h-32">
                     {this.state.errorInfo.componentStack}
-                  </pre>
+                </pre>
                 </div>
               )}
               
@@ -71,7 +71,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 >
                   Try Again
                 </Button>
-              </div>
+          </div>
             </CardContent>
           </Card>
         </div>

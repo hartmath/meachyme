@@ -90,13 +90,13 @@ export default function Feed() {
       const postUserIds = [...new Set((posts || []).map((post: any) => post.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url, user_type')
-        .in('user_id', postUserIds);
+        .select('id, full_name, avatar_url, user_type')
+        .in('id', postUserIds);
 
       // Create a map of user profiles
       const profileMap = new Map();
       (profiles || []).forEach((profile: any) => {
-        profileMap.set(profile.user_id, profile);
+        profileMap.set(profile.id, profile);
       });
 
       // Transform the data to match expected format

@@ -36,6 +36,7 @@ const CreateGroup = lazy(() => import("./pages/CreateGroup"));
 const GroupChatDetail = lazy(() => import("./pages/GroupChatDetail"));
 const MEAMeet = lazy(() => import("./pages/MEAMeet"));
 const GroupSettings = lazy(() => import("./pages/GroupSettings"));
+const TestPage = lazy(() => import("./pages/TestPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppContent() {
@@ -135,6 +136,11 @@ function AppContent() {
         <Route path="/create-status" element={
           <ProtectedRoute>
             <CreateStatus />
+          </ProtectedRoute>
+        } />
+        <Route path="/test" element={
+          <ProtectedRoute>
+            <TestPage />
           </ProtectedRoute>
         } />
         
