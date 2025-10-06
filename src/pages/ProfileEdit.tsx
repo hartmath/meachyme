@@ -66,17 +66,46 @@ export default function ProfileEdit() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      const { error } = await supabase
+      // First check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({
-          full_name: data.name,
-          user_type: data.role,
-          bio: data.bio,
-          location: data.location,
-          phone: data.phone,
-          avatar_url: profileImage
-        })
-        .eq('id', user.id);
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      let error;
+      if (existingProfile) {
+        // Profile exists, update it
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: data.name,
+            user_type: data.role,
+            bio: data.bio,
+            location: data.location,
+            phone: data.phone,
+            avatar_url: profileImage,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        error = updateError;
+      } else {
+        // Profile doesn't exist, create it
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            full_name: data.name,
+            user_type: data.role,
+            bio: data.bio,
+            location: data.location,
+            phone: data.phone,
+            avatar_url: profileImage,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
     },

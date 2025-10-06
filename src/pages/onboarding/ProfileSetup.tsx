@@ -66,10 +66,10 @@ export default function ProfileSetup() {
         avatarUrl = publicUrl;
       }
 
-      // Save profile data
-      const { error } = await supabase
+      // Save profile data - first try to insert, then update if exists
+      let { error } = await supabase
         .from('profiles')
-        .upsert({
+        .insert({
           id: user.id,
           full_name: name.trim(),
           bio: bio.trim() || null,
@@ -77,9 +77,24 @@ export default function ProfileSetup() {
           avatar_url: avatarUrl,
           onboarding_completed: true,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'id'
         });
+
+      // If insert fails (profile already exists), try update
+      if (error && error.code === '23505') { // Unique violation
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: name.trim(),
+            bio: bio.trim() || null,
+            user_type: role,
+            avatar_url: avatarUrl,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        error = updateError;
+      }
 
       if (error) {
         console.error('Profile save error:', error);
