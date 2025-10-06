@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthStatus } from "@/components/AuthStatus";
+import { NavigationTest } from "@/components/NavigationTest";
 
 export default function Events() {
   const { user } = useAuth();
@@ -573,6 +575,12 @@ export default function Events() {
             </p>
           </div>
         )}
+        
+        {/* Debug Components - Remove in production */}
+        <div className="mt-8 space-y-4">
+          <AuthStatus />
+          <NavigationTest />
+        </div>
       </div>
     </div>
   );
