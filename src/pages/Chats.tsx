@@ -91,17 +91,23 @@ export default function Chats() {
         return [];
       }
 
+      console.log('Chats.tsx - Messages fetched:', messages?.length, messages);
+
       // Get unique user IDs from messages
       const userIds = [...new Set([
         ...messages?.map(m => m.sender_id) || [],
         ...messages?.map(m => m.recipient_id) || []
-      ])];
+      ])].filter(id => id !== user.id);
+
+      console.log('Chats.tsx - User IDs to fetch profiles for:', userIds);
 
       // Fetch profiles for all users
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, user_type')
         .in('id', userIds);
+
+      console.log('Chats.tsx - Profiles fetched:', profiles?.length, profiles, profilesError);
 
       // Create a map of user profiles
       const profileMap = new Map();
@@ -117,7 +123,17 @@ export default function Chats() {
         const partnerId = isCurrentUserSender ? message.recipient_id : message.sender_id;
         const partner = profileMap.get(partnerId);
         
-        if (!partner || !partnerId || partnerId === user.id) return;
+        console.log('Processing message:', { 
+          messageId: message.id, 
+          partnerId, 
+          partner, 
+          hasProfile: !!partner 
+        });
+        
+        if (!partner || !partnerId || partnerId === user.id) {
+          console.log('Skipping message - no partner profile or is self');
+          return;
+        }
 
         if (!conversationMap.has(partnerId)) {
           conversationMap.set(partnerId, {
@@ -168,6 +184,7 @@ export default function Chats() {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
       
+      console.log('Chats.tsx - Final conversations:', sortedConversations.length, sortedConversations);
       return sortedConversations;
     },
     staleTime: 30 * 1000, // 30 seconds - conversations change frequently
