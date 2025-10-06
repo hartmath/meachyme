@@ -45,7 +45,7 @@ export default function Profile() {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       console.log('Profile query result:', { profile, error });

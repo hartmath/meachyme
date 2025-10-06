@@ -29,7 +29,7 @@ export default function ProfileEdit() {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -76,7 +76,7 @@ export default function ProfileEdit() {
           phone: data.phone,
           avatar_url: profileImage
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       if (error) throw error;
     },

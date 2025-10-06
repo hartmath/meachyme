@@ -70,7 +70,7 @@ export default function ProfileSetup() {
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          user_id: user.id,
+          id: user.id,
           full_name: name.trim(),
           bio: bio.trim() || null,
           user_type: role,
@@ -78,7 +78,7 @@ export default function ProfileSetup() {
           onboarding_completed: true,
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'user_id'
+          onConflict: 'id'
         });
 
       if (error) {
