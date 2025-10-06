@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Loading } from "@/components/Loading";
 import { usePerformance } from "@/hooks/usePerformance";
-import { DataFetchingDebugger } from "@/components/DataFetchingDebugger";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -37,8 +36,6 @@ const GroupChatDetail = lazy(() => import("./pages/GroupChatDetail"));
 const MEAMeet = lazy(() => import("./pages/MEAMeet"));
 const GroupSettings = lazy(() => import("./pages/GroupSettings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Test = lazy(() => import("./pages/Test"));
-const QuickTest = lazy(() => import("./pages/QuickTest"));
 
 function AppContent() {
   // Add error boundary for route-level errors
@@ -66,14 +63,11 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <DataFetchingDebugger />
       <Suspense fallback={<Loading />}>
         <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/test" element={<Test />} />
-        <Route path="/quick-test" element={<QuickTest />} />
         
         {/* Protected routes */}
         <Route path="/chats" element={

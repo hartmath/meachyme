@@ -70,11 +70,8 @@ export default function Chats() {
     queryKey: ['conversations'],
     enabled: !!user, // Only run if user is authenticated
     queryFn: async () => {
-      console.log('[CHATS] Starting conversations query...');
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('[CHATS] User check:', { hasUser: !!user, userId: user?.id });
       if (!user) {
-        console.log('[CHATS] No user found, returning empty array');
         return [];
       }
 
@@ -93,11 +90,9 @@ export default function Chats() {
         .limit(100); // Limit to recent messages for better performance
 
       if (error) {
-        console.error('[CHATS] Error fetching messages:', error);
+        console.error('Error fetching conversations:', error);
         return [];
       }
-      
-      console.log('[CHATS] Messages fetched:', { count: messages?.length || 0 });
 
       // Get unique user IDs from messages
       const userIds = [...new Set([
