@@ -40,11 +40,15 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
+      console.log('Fetching profile for user:', user.id);
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      console.log('Profile query result:', { profile, error });
 
       if (error) throw error;
       return profile;
