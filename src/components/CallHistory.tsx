@@ -37,12 +37,12 @@ export function CallHistory() {
       // Fetch profiles for these users
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url')
-        .in('user_id', userIds);
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
 
       // Create a map of profiles for quick lookup
       const profileMap = new Map(
-        profiles?.map(profile => [profile.user_id, profile]) || []
+        profiles?.map(profile => [profile.id, profile]) || []
       );
 
       return calls.map(call => {

@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthStatus } from "@/components/AuthStatus";
 import { NavigationTest } from "@/components/NavigationTest";
+import { AppDebugger } from "@/components/AppDebugger";
 
 export default function Events() {
   const { user } = useAuth();
@@ -580,6 +581,7 @@ export default function Events() {
         <div className="mt-8 space-y-4">
           <AuthStatus />
           <NavigationTest />
+          <AppDebugger />
         </div>
       </div>
     </div>
