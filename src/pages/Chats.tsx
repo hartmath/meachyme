@@ -130,27 +130,36 @@ export default function Chats() {
           hasProfile: !!partner 
         });
         
-        if (!partner || !partnerId || partnerId === user.id) {
-          console.log('Skipping message - no partner profile or is self');
+        // Skip if it's the same user
+        if (!partnerId || partnerId === user.id) {
+          console.log('Skipping message - is self');
           return;
         }
 
+        // Create conversation even without profile (show as "User" with partner ID)
         if (!conversationMap.has(partnerId)) {
+          const partnerName = partner?.full_name || `User ${partnerId.substring(0, 8)}`;
+          const initials = partner?.full_name 
+            ? partner.full_name.split(' ').map(n => n[0]).join('').toUpperCase() 
+            : partnerId.substring(0, 2).toUpperCase();
+          
           conversationMap.set(partnerId, {
             id: partnerId,
-            name: partner.full_name || 'Unknown User',
-            role: partner.user_type || 'User',
+            name: partnerName,
+            role: partner?.user_type || 'User',
             lastMessage: message.content,
             timestamp: new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
             }),
             unread: isCurrentUserSender ? 0 : 1, // Simplified unread logic
-            avatar: partner.full_name ? partner.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U',
-            avatar_url: partner.avatar_url,
+            avatar: initials,
+            avatar_url: partner?.avatar_url || null,
             is_pinned: false, // Default values - will be updated from user preferences
             is_blocked: false
           });
+          
+          console.log('Created conversation for partner:', partnerId);
         }
       });
 
