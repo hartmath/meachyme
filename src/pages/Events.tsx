@@ -55,6 +55,16 @@ export default function Events() {
           .select('*')
           .order('created_at', { ascending: false });
 
+        console.log('Events.tsx - Event links query:', { 
+          count: linksData?.length, 
+          error: error?.message,
+          data: linksData 
+        });
+
+        if (error) {
+          console.error('Events query error:', error);
+        }
+
         // Transform the data to match the expected format
         const links = linksData?.map(link => ({
           ...link,
