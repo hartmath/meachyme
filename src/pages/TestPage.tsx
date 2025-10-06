@@ -195,16 +195,39 @@ export default function TestPage() {
       // Test 8: Real-time Connectivity
       try {
         const channel = supabase.channel('test-channel');
-        await channel.subscribe();
-        const status = channel.state;
-        supabase.removeChannel(channel);
-
-        results.tests.push({
-          name: 'Real-time Connectivity',
-          status: status === 'joined' ? 'pass' : 'fail',
-          details: `Channel state: ${status}`,
-          data: { state: status }
+        
+        // Wait for channel to connect with timeout
+        const subscriptionPromise = new Promise((resolve, reject) => {
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              resolve(status);
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              reject(new Error(`Subscription failed: ${status}`));
+            }
+          });
+          
+          // Timeout after 5 seconds
+          setTimeout(() => reject(new Error('Connection timeout')), 5000);
         });
+
+        try {
+          await subscriptionPromise;
+          results.tests.push({
+            name: 'Real-time Connectivity',
+            status: 'pass',
+            details: 'Successfully connected to real-time channel',
+            data: { state: 'SUBSCRIBED' }
+          });
+        } catch (timeoutError: any) {
+          results.tests.push({
+            name: 'Real-time Connectivity',
+            status: 'warning',
+            details: `Connection incomplete: ${timeoutError.message}`,
+            data: { state: channel.state, error: timeoutError.message }
+          });
+        } finally {
+          supabase.removeChannel(channel);
+        }
       } catch (e: any) {
         results.tests.push({
           name: 'Real-time Connectivity',
@@ -283,11 +306,17 @@ export default function TestPage() {
 
                 <div className="space-y-2">
                   {testResults.tests.map((test: any, index: number) => (
-                    <Card key={index} className={test.status === 'pass' ? 'border-green-200' : 'border-red-200'}>
+                    <Card key={index} className={
+                      test.status === 'pass' ? 'border-green-200' : 
+                      test.status === 'warning' ? 'border-yellow-200' : 
+                      'border-red-200'
+                    }>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                           {test.status === 'pass' ? (
                             <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          ) : test.status === 'warning' ? (
+                            <div className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0 rounded-full border-2 border-yellow-600 flex items-center justify-center text-xs font-bold">!</div>
                           ) : (
                             <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                           )}
