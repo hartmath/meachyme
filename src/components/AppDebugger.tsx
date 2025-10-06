@@ -6,11 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { testSupabaseConnection } from '@/utils/supabaseTest';
+import { createUserProfile } from '@/utils/createProfile';
+import { useToast } from '@/hooks/use-toast';
 
 export function AppDebugger() {
   const { user, session, loading } = useAuth();
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Test profile query
   const { data: profile, error: profileError } = useQuery({
@@ -142,6 +145,36 @@ export function AppDebugger() {
     setIsLoading(false);
   };
 
+  const handleCreateProfile = async () => {
+    try {
+      const result = await createUserProfile({
+        full_name: user?.email?.split('@')[0] || 'User',
+        user_type: 'attendee'
+      });
+      
+      if (result.success) {
+        toast({
+          title: "Profile Created",
+          description: result.message,
+        });
+        // Refresh the profile query
+        window.location.reload();
+      } else {
+        toast({
+          title: "Profile Creation Failed",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -149,9 +182,16 @@ export function AppDebugger() {
           <CardTitle>App Debugger</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={runComprehensiveDiagnostics} disabled={isLoading}>
-            {isLoading ? 'Running Diagnostics...' : 'Run Full Diagnostics'}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={runComprehensiveDiagnostics} disabled={isLoading}>
+              {isLoading ? 'Running Diagnostics...' : 'Run Full Diagnostics'}
+            </Button>
+            {!profile && user && (
+              <Button onClick={handleCreateProfile} variant="outline">
+                Create Profile
+              </Button>
+            )}
+          </div>
           
           {/* Quick Status */}
           <div className="grid grid-cols-2 gap-2">

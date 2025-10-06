@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ensureUserProfile } from '@/utils/createProfile';
 
 interface AuthContextType {
   user: User | null;
@@ -74,6 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Handle auth events
             if (event === 'SIGNED_IN') {
+              // Ensure user has a profile
+              if (session?.user) {
+                ensureUserProfile().catch(error => {
+                  console.warn('Failed to ensure user profile:', error);
+                });
+              }
+              
               // Check if user needs onboarding
               const onboardingCompleted = localStorage.getItem("onboarding_completed");
               const isNewUser = localStorage.getItem("is_new_user") === "true";
