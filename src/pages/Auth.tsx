@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthDebugger } from "@/components/AuthDebugger";
 
 export default function Auth() {
   const { signIn, signUp, loading, session, needsOnboarding } = useAuth();
@@ -271,6 +272,11 @@ export default function Auth() {
         
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>By signing up, you agree to our terms of service and privacy policy.</p>
+        </div>
+        
+        {/* Debug Component - Remove in production */}
+        <div className="mt-8">
+          <AuthDebugger />
         </div>
       </div>
     </div>
