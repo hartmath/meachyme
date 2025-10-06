@@ -68,12 +68,9 @@ export default function Chats() {
   // Fetch conversations from Supabase
   const { data: conversations, isLoading, error } = useQuery({
     queryKey: ['conversations'],
-    enabled: !!user, // Only run if user is authenticated
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return [];
-      }
+      if (!user) return [];
 
       // Get latest message for each conversation with profile data in a single query
       const { data: messages, error } = await supabase

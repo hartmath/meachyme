@@ -52,7 +52,6 @@ export default function Feed() {
   // Fetch status posts from people you've messaged + your own posts
   const { data: statusPosts, isLoading, error } = useQuery({
     queryKey: ['status-posts'],
-    enabled: !!user, // Only run if user is authenticated
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
