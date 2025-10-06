@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
+import { testSupabaseConnection } from '@/utils/supabaseTest';
 
 export function AppDebugger() {
   const { user, session, loading } = useAuth();
@@ -129,23 +130,9 @@ export function AppDebugger() {
         originalError.apply(console, args);
       };
 
-      // Test 7: Network connectivity
-      try {
-        const response = await fetch('https://behddityjbiumdcgattw.supabase.co/rest/v1/', {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlaGRkaXR5amJpdW1kY2dhdHR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4Mzg0NDQsImV4cCI6MjA3MzQxNDQ0NH0.NG9I7gbKhdsGL_UzB5fbgtuiFseu8-3QZ3usbNDge08'
-          }
-        });
-        info.network = {
-          connected: response.ok,
-          status: response.status
-        };
-      } catch (netError: any) {
-        info.network = {
-          connected: false,
-          error: netError.message
-        };
-      }
+      // Test 7: Comprehensive Supabase connection test
+      const supabaseTest = await testSupabaseConnection();
+      info.supabase = supabaseTest;
 
     } catch (error: any) {
       info.generalError = error.message;
