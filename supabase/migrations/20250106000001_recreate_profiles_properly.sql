@@ -25,8 +25,8 @@ CREATE TABLE public.profiles (
   bio TEXT,
   location TEXT,
   
-  -- User type and role
-  user_type TEXT DEFAULT 'attendee' CHECK (user_type IN ('attendee', 'organizer', 'vendor', 'sponsor')),
+  -- User type and role (flexible to support all types)
+  user_type TEXT DEFAULT 'attendee',
   
   -- Profile media
   avatar_url TEXT,
