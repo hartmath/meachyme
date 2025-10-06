@@ -100,13 +100,13 @@ export default function Chats() {
       // Fetch profiles for all users
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url, user_type')
-        .in('user_id', userIds);
+        .select('id, full_name, avatar_url, user_type')
+        .in('id', userIds);
 
       // Create a map of user profiles
       const profileMap = new Map();
       profiles?.forEach((profile) => {
-        profileMap.set(profile.user_id, profile);
+        profileMap.set(profile.id, profile);
       });
 
       // Group messages by conversation partner

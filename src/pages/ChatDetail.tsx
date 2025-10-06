@@ -113,7 +113,7 @@ export default function ChatDetail() {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', id)
+        .eq('id', id)
         .maybeSingle();
 
       if (error) throw error;
