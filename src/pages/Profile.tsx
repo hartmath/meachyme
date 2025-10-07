@@ -28,7 +28,7 @@ import { useState } from "react";
 export default function Profile() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [showMEAMeet, setShowMEAMeet] = useState(false);
   const [showMEAMeetSimple, setShowMEAMeetSimple] = useState(false);
@@ -147,6 +147,15 @@ export default function Profile() {
   const getInitials = (name: string) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
   };
+
+  // Show loading while auth initializes
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
+        <Loading text="Loading profile..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
