@@ -130,7 +130,7 @@ export default function ContactDiscovery() {
                     </div>
                   </div>
                   <Button
-                    onClick={() => handleConnect(profile.user_id)}
+                    onClick={() => handleConnect(profile.id)}
                     size="sm"
                     variant="outline"
                     className="h-7 px-2 text-xs"
