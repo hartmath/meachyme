@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -50,6 +50,7 @@ function AppContent() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [retrying, setRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const location = useLocation();
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -72,13 +73,16 @@ function AppContent() {
     // Trigger a lightweight fetch to check connectivity
     try {
       await fetch('/robots.txt', { cache: 'no-store' });
-    } catch {}
+    } catch (_err) {
+      // Connectivity probe failure is non-fatal; keep banner visible
+      console.debug('Connectivity probe failed');
+    }
   };
 
   // Reset error when route changes
   useEffect(() => {
     setRouteError(null);
-  }, [window.location.pathname]);
+  }, [location.pathname]);
 
   if (routeError) {
     return (

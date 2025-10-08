@@ -87,5 +87,9 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    // ESM-compatible import for Tailwind plugins
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    (await import('tailwindcss-animate')).default || (await import('tailwindcss-animate'))
+  ],
 } satisfies Config;

@@ -7,11 +7,26 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, CalendarDays, Clock, MapPin, Users, Link as LinkIcon } from "lucide-react";
 
+type EventRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  event_type: 'shared_link' | 'created_event';
+  event_link?: string | null;
+  event_date?: string | null;
+  event_location?: string | null;
+  event_category?: string | null;
+  max_attendees?: number | null;
+  created_at: string;
+  image_url?: string | null;
+  profile_data?: { full_name?: string | null } | null;
+};
+
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<EventRow | null>({
     queryKey: ["event-details", id],
     enabled: !!id,
     queryFn: async () => {
@@ -21,7 +36,7 @@ export default function EventDetails() {
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as any;
+      return data as EventRow;
     },
   });
 
@@ -50,6 +65,14 @@ export default function EventDetails() {
     });
   };
 
+  // Redirect if linked event has external URL
+  useEffect(() => {
+    if (data?.event_link) {
+      const url = normalizeExternalUrl(data.event_link);
+      window.location.replace(url);
+    }
+  }, [data?.event_link]);
+
   if (isLoading) {
     return <Loading className="p-8" text="Loading event..." />;
   }
@@ -69,20 +92,7 @@ export default function EventDetails() {
     );
   }
 
-  const event = {
-    ...data,
-    profiles: (data as any).profile_data,
-  } as any;
-
-  // If this event has an external link, redirect to it
-  useEffect(() => {
-    if (event?.event_link) {
-      const url = normalizeExternalUrl(event.event_link);
-      window.location.replace(url);
-    }
-  }, [event?.event_link]);
-
-  if (event.event_link) {
+  if (data.event_link) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-xl mx-auto">
@@ -102,64 +112,64 @@ export default function EventDetails() {
         </Button>
 
         <Card className="p-6 space-y-4">
-          {event.image_url && (
+          {data.image_url && (
             <img
-              src={event.image_url}
-              alt={event.title}
+              src={data.image_url}
+              alt={data.title}
               className="w-full rounded-md object-cover max-h-72"
               loading="lazy"
             />
           )}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-xl font-semibold">{event.title}</h1>
+              <h1 className="text-xl font-semibold">{data.title}</h1>
               <span className={`px-2 py-1 text-xs rounded-full ${
-                event.event_type === 'created_event'
+                data.event_type === 'created_event'
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                   : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
               }`}>
-                {event.event_type === 'created_event' ? 'Created Event' : 'External Link'}
+                {data.event_type === 'created_event' ? 'Created Event' : 'External Link'}
               </span>
             </div>
-            {event.description && (
-              <p className="text-sm text-muted-foreground">{event.description}</p>
+            {data.description && (
+              <p className="text-sm text-muted-foreground">{data.description}</p>
             )}
           </div>
 
-          {event.event_link && (
+          {data.event_link && (
             <div className="bg-muted/30 rounded p-3">
               <div className="flex items-center gap-2">
                 <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                <a href={normalizeExternalUrl(event.event_link)} target="_blank" rel="noreferrer noopener" className="text-sm underline">
-                  {normalizeExternalUrl(event.event_link)}
+                <a href={normalizeExternalUrl(data.event_link)} target="_blank" rel="noreferrer noopener" className="text-sm underline">
+                  {normalizeExternalUrl(data.event_link)}
                 </a>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            {event.event_date && (
+            {data.event_date && (
               <div className="flex items-center text-sm text-muted-foreground">
                 <CalendarDays className="h-4 w-4 mr-2" />
-                <span>{formatDate(event.event_date)} at {formatTime(event.event_date)}</span>
+                <span>{formatDate(data.event_date)} at {formatTime(data.event_date)}</span>
               </div>
             )}
-            {event.event_location && (
+            {data.event_location && (
               <div className="flex items-center text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 mr-2" />
-                <span>{event.event_location}</span>
+                <span>{data.event_location}</span>
               </div>
             )}
-            {event.max_attendees && (
+            {data.max_attendees && (
               <div className="flex items-center text-sm text-muted-foreground">
                 <Users className="h-4 w-4 mr-2" />
-                <span>Max {event.max_attendees} attendees</span>
+                <span>Max {data.max_attendees} attendees</span>
               </div>
             )}
           </div>
 
           <div className="pt-2 text-xs text-muted-foreground">
-            Posted by {event.profiles?.full_name || 'Unknown'} • {formatDate(event.created_at)} {formatTime(event.created_at)}
+            Posted by {data.profile_data?.full_name || 'Unknown'} • {formatDate(data.created_at)} {formatTime(data.created_at)}
           </div>
         </Card>
       </div>

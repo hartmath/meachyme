@@ -469,8 +469,8 @@ export default function ChatDetail() {
               >
                 {!isOwn && (
                   <Avatar className="h-7 w-7 flex-shrink-0">
-                    <AvatarImage src={(chatPartner as any)?.avatar_url} alt={(chatPartner as any)?.full_name} />
-                    <AvatarFallback>{getInitials((chatPartner as any)?.full_name || 'U')}</AvatarFallback>
+                    <AvatarImage src={(chatPartner as { avatar_url?: string } | null)?.avatar_url} alt={(chatPartner as { full_name?: string } | null)?.full_name} />
+                    <AvatarFallback>{getInitials(((chatPartner as { full_name?: string } | null)?.full_name) || 'U')}</AvatarFallback>
                   </Avatar>
                 )}
                 <div

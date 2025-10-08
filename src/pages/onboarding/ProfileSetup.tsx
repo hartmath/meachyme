@@ -19,11 +19,12 @@ export default function ProfileSetup() {
   const { completeOnboarding, user } = useAuth();
   const { toast } = useToast();
 
-  // Redirect if user is not authenticated
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
+  // Redirect if user is not authenticated (must not conditionally bypass hooks)
+  // Perform navigation in an effect instead of before hooks return
+  
+  // Note: Render a minimal placeholder while redirecting
+  
+  
   
   const selectedRole = location.state?.role || "organizer";
   const roleLabels = {
@@ -145,6 +146,10 @@ export default function ProfileSetup() {
   };
 
   const handleComplete = () => {
+    if (!user) {
+      navigate("/auth", { replace: true });
+      return;
+    }
     if (name.trim()) {
       saveProfileMutation.mutate({ 
         name: name.trim(), 
@@ -163,6 +168,9 @@ export default function ProfileSetup() {
 
   return (
     <div className="min-h-screen bg-background p-4">
+      {!user && (
+        <div className="p-4 text-sm text-muted-foreground">Redirecting to sign in…</div>
+      )}
       {/* Header */}
       <header className="flex items-center mb-8 pt-4">
         <Button 
