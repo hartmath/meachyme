@@ -53,8 +53,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip external requests
+  // Skip external requests and explicitly bypass Supabase domains
   if (url.origin !== location.origin) {
+    // Explicitly bypass caching/handling for Supabase API and assets
+    if (url.hostname.endsWith('.supabase.co')) {
+      return; // let the network handle it directly
+    }
     return;
   }
 

@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Loading } from "@/components/Loading";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePerformance } from "@/hooks/usePerformance";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -46,6 +47,33 @@ function AppContent() {
   
   // Monitor performance
   usePerformance();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [retrying, setRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    // small backoff
+    const delay = Math.min(2000 + retryCount * 1000, 8000);
+    await new Promise(r => setTimeout(r, delay));
+    setRetrying(false);
+    setRetryCount(c => c + 1);
+    // Trigger a lightweight fetch to check connectivity
+    try {
+      await fetch('/robots.txt', { cache: 'no-store' });
+    } catch {}
+  };
 
   // Reset error when route changes
   useEffect(() => {
@@ -66,6 +94,18 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!isOnline && (
+        <div className="sticky top-0 z-50">
+          <Alert className="rounded-none">
+            <AlertDescription className="flex items-center justify-between w-full">
+              <span>You’re offline. Some data may be unavailable.</span>
+              <Button size="sm" variant="outline" onClick={handleRetry} disabled={retrying}>
+                {retrying ? 'Retrying…' : 'Retry'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <Suspense fallback={<Loading />}>
         <Routes>
         {/* Public routes */}
