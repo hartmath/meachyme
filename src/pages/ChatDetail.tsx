@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Send, Smile, Image, FileText, Mic } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MediaViewer } from "@/components/MediaViewer";
@@ -20,6 +21,7 @@ export default function ChatDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: authUser } = useAuth();
   const [newMessage, setNewMessage] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
@@ -44,14 +46,9 @@ export default function ChatDetail() {
   };
 
   // Get current user ID
-  useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-      return user;
-    }
-  });
+  useEffect(() => {
+    setCurrentUserId(authUser?.id || null);
+  }, [authUser?.id]);
 
   // Set up real-time message subscription
   useEffect(() => {
