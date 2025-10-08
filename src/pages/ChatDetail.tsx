@@ -16,6 +16,13 @@ import { MessageReactions } from "@/components/MessageReactions";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
 import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 
+type ChatPartner = {
+  id?: string;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  user_id?: string | null;
+};
+
 export default function ChatDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -107,7 +114,7 @@ export default function ChatDetail() {
   }, [currentUserId, queryClient, id]);
 
   // Fetch chat partner's profile
-  const { data: chatPartner, isLoading: loadingPartner } = useQuery({
+  const { data: chatPartner, isLoading: loadingPartner } = useQuery<ChatPartner | null>({
     queryKey: ['chat-partner', id],
     queryFn: async () => {
       if (!id) return null;
@@ -119,7 +126,7 @@ export default function ChatDetail() {
         .maybeSingle();
 
       if (error) throw error;
-      return profile;
+      return profile as ChatPartner;
     },
     enabled: !!id
   });
@@ -234,7 +241,7 @@ export default function ChatDetail() {
 
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: 'text' | 'image' | 'file' | 'voice'; attachmentMetadata?: Record<string, unknown> }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Missing user or recipient');
 
@@ -469,8 +476,8 @@ export default function ChatDetail() {
               >
                 {!isOwn && (
                   <Avatar className="h-7 w-7 flex-shrink-0">
-                    <AvatarImage src={(chatPartner as { avatar_url?: string } | null)?.avatar_url} alt={(chatPartner as { full_name?: string } | null)?.full_name} />
-                    <AvatarFallback>{getInitials(((chatPartner as { full_name?: string } | null)?.full_name) || 'U')}</AvatarFallback>
+                    <AvatarImage src={chatPartner?.avatar_url || undefined} alt={chatPartner?.full_name || undefined} />
+                    <AvatarFallback>{getInitials(chatPartner?.full_name || 'U')}</AvatarFallback>
                   </Avatar>
                 )}
                 <div

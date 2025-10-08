@@ -123,11 +123,24 @@ export default function Events() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const eventData: any = {
+      type EventInsert = {
+        user_id: string;
+        event_type: 'shared_link' | 'created_event';
+        title: string;
+        description?: string | null;
+        event_link?: string | null;
+        event_date?: string | null;
+        event_location?: string | null;
+        event_category?: string | null;
+        max_attendees?: number | null;
+        image_url?: string | null;
+      };
+
+      const eventData: EventInsert = {
         user_id: user.id,
         event_type: type,
         title: title,
-        description: description
+        description: description || null
       };
 
       // If user selected an image, upload to storage and attach URL

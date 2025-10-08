@@ -113,7 +113,7 @@ export default function GroupChatDetail() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: string; attachmentMetadata?: any }) => {
+    mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: 'text' | 'image' | 'file' | 'voice'; attachmentMetadata?: Record<string, unknown> }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
