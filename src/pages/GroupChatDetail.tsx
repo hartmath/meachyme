@@ -25,6 +25,7 @@ export default function GroupChatDetail() {
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Fetch group details
   const { data: group, isLoading: groupLoading } = useQuery({
@@ -42,6 +43,16 @@ export default function GroupChatDetail() {
       return groupData;
     },
     enabled: !!id
+  });
+
+  // Fetch current user id
+  useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+      return user;
+    }
   });
 
   // Fetch group members
@@ -452,60 +463,107 @@ export default function GroupChatDetail() {
             </p>
           </div>
         ) : (
-          messages?.map((message) => (
-            <div key={message.id} className="flex space-x-2">
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.full_name} />
-                <AvatarFallback>{getInitials(message.profiles?.full_name || 'U')}</AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-xs font-medium text-foreground">
-                    {message.profiles?.full_name || 'Unknown User'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatTime(message.created_at)}
-                  </span>
+          messages?.map((message) => {
+            const isOwn = message.sender_id === currentUserId;
+            if (isOwn) {
+              return (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[75%] rounded-2xl px-3 py-2 bg-primary text-primary-foreground">
+                    {message.message_type === 'image' && message.attachment_url ? (
+                      <div>
+                        <img 
+                          src={message.attachment_url} 
+                          alt="Shared image" 
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                        {message.content !== '📷 Image' && (
+                          <p className="text-sm mt-1">{message.content}</p>
+                        )}
+                      </div>
+                    ) : message.message_type === 'file' && message.attachment_url ? (
+                      <div>
+                        <p className="text-sm">{message.content}</p>
+                        <a 
+                          href={message.attachment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs underline"
+                        >
+                          Download file
+                        </a>
+                      </div>
+                    ) : message.message_type === 'voice' && message.attachment_url ? (
+                      <VoiceMessagePlayer 
+                        audioUrl={message.attachment_url}
+                        duration={message.attachment_metadata?.duration} />
+                    ) : (
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                    )}
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[10px] opacity-80">{formatTime(message.created_at)}</span>
+                    </div>
+                    <MessageReactions 
+                      messageId={message.id} 
+                      messageType="group" 
+                    />
+                  </div>
                 </div>
-                
-                <div className="bg-muted rounded-lg p-2 max-w-xs">
-                  {message.message_type === 'image' && message.attachment_url ? (
-                    <div>
-                      <img 
-                        src={message.attachment_url} 
-                        alt="Shared image" 
-                        className="rounded-lg max-w-full h-auto"
-                      />
-                      <p className="text-sm mt-1">{message.content}</p>
-                    </div>
-                  ) : message.message_type === 'file' && message.attachment_url ? (
-                    <div>
+              );
+            }
+            // Other user's message
+            return (
+              <div key={message.id} className="flex items-start gap-2">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.full_name} />
+                  <AvatarFallback>{getInitials(message.profiles?.full_name || 'U')}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-medium text-foreground">
+                      {message.profiles?.full_name || 'Unknown User'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatTime(message.created_at)}
+                    </span>
+                  </div>
+                  <div className="max-w-[75%] rounded-2xl px-3 py-2 bg-muted text-foreground">
+                    {message.message_type === 'image' && message.attachment_url ? (
+                      <div>
+                        <img 
+                          src={message.attachment_url} 
+                          alt="Shared image" 
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                        <p className="text-sm mt-1">{message.content}</p>
+                      </div>
+                    ) : message.message_type === 'file' && message.attachment_url ? (
+                      <div>
+                        <p className="text-sm">{message.content}</p>
+                        <a 
+                          href={message.attachment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Download file
+                        </a>
+                      </div>
+                    ) : message.message_type === 'voice' && message.attachment_url ? (
+                      <VoiceMessagePlayer 
+                        audioUrl={message.attachment_url}
+                        duration={message.attachment_metadata?.duration} />
+                    ) : (
                       <p className="text-sm">{message.content}</p>
-                      <a 
-                        href={message.attachment_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Download file
-                      </a>
-                    </div>
-                  ) : message.message_type === 'voice' && message.attachment_url ? (
-                    <VoiceMessagePlayer 
-                      audioUrl={message.attachment_url}
-                      duration={message.attachment_metadata?.duration} />
-                  ) : (
-                    <p className="text-sm">{message.content}</p>
-                  )}
-                  <MessageReactions 
-                    messageId={message.id} 
-                    messageType="group" 
-                  />
+                    )}
+                    <MessageReactions 
+                      messageId={message.id} 
+                      messageType="group" 
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

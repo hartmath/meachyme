@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SearchModal } from "@/components/SearchModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +29,8 @@ export default function Events() {
   const [eventLocation, setEventLocation] = useState("");
   const [eventCategory, setEventCategory] = useState("");
   const [maxAttendees, setMaxAttendees] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -128,6 +130,20 @@ export default function Events() {
         description: description
       };
 
+      // If user selected an image, upload to storage and attach URL
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/events/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('status-media')
+          .upload(fileName, imageFile);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('status-media')
+          .getPublicUrl(fileName);
+        eventData.image_url = publicUrl;
+      }
+
       if (type === 'shared_link' && link) {
         eventData.event_link = link;
       } else if (type === 'created_event') {
@@ -159,6 +175,8 @@ export default function Events() {
       setEventLocation("");
       setEventCategory("");
       setMaxAttendees("");
+      setImageFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setIsPostingEvent(false);
       toast({
         title: "Event posted!",
@@ -328,6 +346,23 @@ export default function Events() {
                 className="w-full"
                 rows={3}
               />
+            </div>
+
+            {/* Event Image Upload */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1 block">
+                Upload Image (Optional)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-muted file:text-foreground hover:file:bg-muted/80"
+              />
+              {imageFile && (
+                <p className="mt-1 text-xs text-muted-foreground">Selected: {imageFile.name}</p>
+              )}
             </div>
 
             {/* Event Details (only for created_event type) */}
@@ -506,6 +541,16 @@ export default function Events() {
                         {eventLink.event_type === 'created_event' ? 'Created Event' : 'External Link'}
                       </span>
                     </div>
+                    {eventLink.image_url && (
+                      <div className="mb-2">
+                        <img
+                          src={eventLink.image_url}
+                          alt={eventLink.title}
+                          className="w-full rounded-md object-cover max-h-48"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
                     {eventLink.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                         {eventLink.description}

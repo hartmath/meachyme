@@ -102,6 +102,14 @@ export default function EventDetails() {
         </Button>
 
         <Card className="p-6 space-y-4">
+          {event.image_url && (
+            <img
+              src={event.image_url}
+              alt={event.title}
+              className="w-full rounded-md object-cover max-h-72"
+              loading="lazy"
+            />
+          )}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <h1 className="text-xl font-semibold">{event.title}</h1>
