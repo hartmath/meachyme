@@ -532,13 +532,13 @@ export default function Events() {
                       )}
                     </div>
 
-                    <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-muted-foreground">
                       <Clock className="h-3 w-3 mr-1" />
                       <span>Posted {formatDate(eventLink.created_at)} at {formatTime(eventLink.created_at)}</span>
                     </div>
                   </div>
                   
-                  {eventLink.event_link && (
+              {eventLink.event_link ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -548,7 +548,16 @@ export default function Events() {
                       <ExternalLink className="h-3 w-3 mr-1" />
                       Open
                     </Button>
-                  )}
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/events/${eventLink.id}`)}
+                  className="ml-3 h-8 px-3 text-xs flex-shrink-0"
+                >
+                  Details
+                </Button>
+              )}
                 </div>
 
                 {/* Event Link Preview (only for shared links) */}

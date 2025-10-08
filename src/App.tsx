@@ -20,6 +20,7 @@ const Chats = lazy(() => import("./pages/Chats"));
 const Feed = lazy(() => import("./pages/Feed"));
 const Events = lazy(() => import("./pages/Events"));
 const Profile = lazy(() => import("./pages/Profile"));
+const EventDetails = lazy(() => import("./pages/EventDetails"));
 const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
 const ChatDetail = lazy(() => import("./pages/ChatDetail"));
 const CreateStatus = lazy(() => import("./pages/CreateStatus"));
@@ -95,6 +96,11 @@ function AppContent() {
           <ProtectedRoute>
             <Events />
             <BottomNavigation />
+          </ProtectedRoute>
+        } />
+        <Route path="/events/:id" element={
+          <ProtectedRoute>
+            <EventDetails />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
