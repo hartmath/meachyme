@@ -25,6 +25,14 @@ export default function EventDetails() {
     },
   });
 
+  const normalizeExternalUrl = (input: string) => {
+    const trimmed = (input || "").trim();
+    const noSpaces = trimmed.replace(/\s+/g, "");
+    if (/^https?:\/\//i.test(noSpaces)) return noSpaces;
+    if (/^www\./i.test(noSpaces)) return `https://${noSpaces}`;
+    return `https://${noSpaces}`;
+  };
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
       weekday: 'short',
@@ -69,7 +77,8 @@ export default function EventDetails() {
   // If this event has an external link, redirect to it
   useEffect(() => {
     if (event?.event_link) {
-      window.location.replace(event.event_link);
+      const url = normalizeExternalUrl(event.event_link);
+      window.location.replace(url);
     }
   }, [event?.event_link]);
 
@@ -113,8 +122,8 @@ export default function EventDetails() {
             <div className="bg-muted/30 rounded p-3">
               <div className="flex items-center gap-2">
                 <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                <a href={event.event_link} target="_blank" rel="noreferrer noopener" className="text-sm underline">
-                  {event.event_link}
+                <a href={normalizeExternalUrl(event.event_link)} target="_blank" rel="noreferrer noopener" className="text-sm underline">
+                  {normalizeExternalUrl(event.event_link)}
                 </a>
               </div>
             </div>

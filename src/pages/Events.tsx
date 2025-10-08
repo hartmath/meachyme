@@ -33,6 +33,14 @@ export default function Events() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const normalizeExternalUrl = (input: string) => {
+    const trimmed = (input || "").trim();
+    const noSpaces = trimmed.replace(/\s+/g, "");
+    if (/^https?:\/\//i.test(noSpaces)) return noSpaces;
+    if (/^www\./i.test(noSpaces)) return `https://${noSpaces}`;
+    return `https://${noSpaces}`;
+  };
+
   // Fetch shared event links
   const { data: eventLinks, isLoading, error: queryError } = useQuery({
     queryKey: ['shared-event-links'],
@@ -228,7 +236,8 @@ export default function Events() {
   };
 
   const handleOpenEventLink = (link: string) => {
-    window.open(link, '_blank', 'noopener,noreferrer');
+    const url = normalizeExternalUrl(link);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
