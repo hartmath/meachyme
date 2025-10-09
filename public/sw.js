@@ -38,6 +38,10 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => {
+        // Enable navigation preload for faster first paint
+        if ('navigationPreload' in self.registration) {
+          self.registration.navigationPreload.enable();
+        }
         return self.clients.claim();
       })
   );
@@ -66,7 +70,15 @@ self.addEventListener('fetch', (event) => {
   if (request.destination === 'document') {
     // For HTML pages, try network first, then cache
     event.respondWith(
-      fetch(request)
+      (async () => {
+        // Try to use navigation preload response if available
+        const preload = await event.preloadResponse;
+        if (preload) {
+          const clone = preload.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
+          return preload;
+        }
+        return fetch(request)
         .then((response) => {
           if (response.status === 200) {
             const responseClone = response.clone();
@@ -86,7 +98,8 @@ self.addEventListener('fetch', (event) => {
               // Fallback to index.html for SPA routing
               return caches.match('/');
             });
-        })
+        });
+      })()
     );
   } else if (request.destination === 'image' || request.destination === 'script' || request.destination === 'style') {
     // For static assets, try cache first, then network

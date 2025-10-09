@@ -17,7 +17,7 @@ import { NavigationTest } from "@/components/NavigationTest";
 import { AppDebugger } from "@/components/AppDebugger";
 
 export default function Events() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isPostingEvent, setIsPostingEvent] = useState(false);
   const [eventType, setEventType] = useState<'shared_link' | 'created_event'>('shared_link');
@@ -46,10 +46,10 @@ export default function Events() {
   // Fetch shared event links
   const { data: eventLinks, isLoading, error: queryError } = useQuery({
     queryKey: ['shared-event-links'],
-    enabled: !!user, // Only run if user is authenticated
+    enabled: !!authUser, // Only run if user is authenticated
     queryFn: async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = authUser;
         if (!user) {
           toast({
             title: "Not authenticated",
@@ -120,7 +120,7 @@ export default function Events() {
       category?: string;
       maxAttendees?: number;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user) throw new Error('Not authenticated');
 
       type EventInsert = {

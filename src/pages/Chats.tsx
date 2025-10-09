@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function Chats() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const { contextMenu, openContextMenu, closeContextMenu } = useChatContextMenu();
@@ -69,7 +69,7 @@ export default function Chats() {
   const { data: conversations, isLoading, error } = useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user) return [];
 
       // Get latest message for each conversation with profile data in a single query
@@ -91,7 +91,7 @@ export default function Chats() {
         return [];
       }
 
-      console.log('Chats.tsx - Messages fetched:', messages?.length, messages);
+      if (import.meta.env.DEV) console.log('Chats.tsx - Messages fetched:', messages?.length);
 
       // Get unique user IDs from messages
       const userIds = [...new Set([
@@ -99,7 +99,7 @@ export default function Chats() {
         ...messages?.map(m => m.recipient_id) || []
       ])].filter(id => id !== user.id);
 
-      console.log('Chats.tsx - User IDs to fetch profiles for:', userIds);
+      if (import.meta.env.DEV) console.log('Chats.tsx - User IDs to fetch profiles for:', userIds);
 
       // Fetch profiles for all users
       const { data: profiles, error: profilesError } = await supabase
@@ -107,7 +107,7 @@ export default function Chats() {
         .select('id, full_name, avatar_url, user_type')
         .in('id', userIds);
 
-      console.log('Chats.tsx - Profiles fetched:', profiles?.length, profiles, profilesError);
+      if (import.meta.env.DEV) console.log('Chats.tsx - Profiles fetched:', profiles?.length, profilesError);
 
       // Create a map of user profiles
       const profileMap = new Map();
@@ -123,16 +123,11 @@ export default function Chats() {
         const partnerId = isCurrentUserSender ? message.recipient_id : message.sender_id;
         const partner = profileMap.get(partnerId);
         
-        console.log('Processing message:', { 
-          messageId: message.id, 
-          partnerId, 
-          partner, 
-          hasProfile: !!partner 
-        });
+        if (import.meta.env.DEV) console.log('Processing message:', { messageId: message.id, partnerId, hasProfile: !!partner });
         
         // Skip if it's the same user
         if (!partnerId || partnerId === user.id) {
-          console.log('Skipping message - is self');
+          if (import.meta.env.DEV) console.log('Skipping message - is self');
           return;
         }
 
@@ -158,8 +153,7 @@ export default function Chats() {
             is_pinned: false, // Default values - will be updated from user preferences
             is_blocked: false
           });
-          
-          console.log('Created conversation for partner:', partnerId);
+          if (import.meta.env.DEV) console.log('Created conversation for partner:', partnerId);
         }
       });
 
@@ -193,7 +187,7 @@ export default function Chats() {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
       
-      console.log('Chats.tsx - Final conversations:', sortedConversations.length, sortedConversations);
+      if (import.meta.env.DEV) console.log('Chats.tsx - Final conversations:', sortedConversations.length);
       return sortedConversations;
     },
     staleTime: 30 * 1000, // 30 seconds - conversations change frequently

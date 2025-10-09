@@ -13,12 +13,14 @@ import { sendGroupMessageNotification } from "@/utils/pushNotifications";
 import { MessageReactions } from "@/components/MessageReactions";
 import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function GroupChatDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: authUser } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -46,14 +48,9 @@ export default function GroupChatDetail() {
   });
 
   // Fetch current user id
-  useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-      return user;
-    }
-  });
+  useEffect(() => {
+    setCurrentUserId(authUser?.id || null);
+  }, [authUser?.id]);
 
   // Fetch group members
   const { data: members, isLoading: membersLoading } = useQuery({
@@ -114,7 +111,7 @@ export default function GroupChatDetail() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: 'text' | 'image' | 'file' | 'voice'; attachmentMetadata?: Record<string, unknown> }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
       const { error } = await supabase
@@ -168,7 +165,7 @@ export default function GroupChatDetail() {
   // Upload file mutation
   const uploadFileMutation = useMutation({
     mutationFn: async (file: File) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
       // Create unique filename
@@ -190,7 +187,7 @@ export default function GroupChatDetail() {
       return { publicUrl, fileName, fileType: file.type };
     },
     onSuccess: async (fileData) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) return;
 
       const messageType = fileData.fileType.startsWith('image/') ? 'image' : 'file';
@@ -324,7 +321,7 @@ export default function GroupChatDetail() {
 
   const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) throw new Error('Not authenticated or missing group ID');
 
       // Upload voice message to Supabase Storage

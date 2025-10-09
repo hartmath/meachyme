@@ -192,7 +192,7 @@ export default function ChatDetail() {
   // Mutation to upload chat attachment
   const uploadAttachmentMutation = useMutation({
     mutationFn: async ({ file, recipientId }: { file: File; recipientId: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user) throw new Error('No authenticated user');
 
       // Create filename with both user IDs for shared access
@@ -242,7 +242,7 @@ export default function ChatDetail() {
   // Mutation to send a new message
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, attachmentUrl, messageType = 'text', attachmentMetadata }: { content: string; attachmentUrl?: string; messageType?: 'text' | 'image' | 'file' | 'voice'; attachmentMetadata?: Record<string, unknown> }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) throw new Error('Missing user or recipient');
 
       const { error } = await supabase
@@ -308,7 +308,7 @@ export default function ChatDetail() {
 
   const handleVoiceMessageSend = async (audioBlob: Blob, duration: number) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = authUser;
       if (!user || !id) throw new Error('Not authenticated or missing recipient ID');
 
       // Upload voice message to Supabase Storage
