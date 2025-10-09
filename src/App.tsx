@@ -40,6 +40,7 @@ const MEAMeet = lazy(() => import("./pages/MEAMeet"));
 const GroupSettings = lazy(() => import("./pages/GroupSettings"));
 const TestPage = lazy(() => import("./pages/TestPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Debug = lazy(() => import("./pages/Debug"));
 
 function AppContent() {
   // Add error boundary for route-level errors
@@ -115,6 +116,7 @@ function AppContent() {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/debug" element={<Debug />} />
         
         {/* Protected routes */}
         <Route path="/chats" element={
