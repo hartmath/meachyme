@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import type { Config } from "tailwindcss";
 
 export default {
@@ -88,8 +89,6 @@ export default {
     },
   },
   plugins: [
-    // ESM-compatible import for Tailwind plugins
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    (await import('tailwindcss-animate')).default || (await import('tailwindcss-animate'))
+    require("tailwindcss-animate")
   ],
 } satisfies Config;
