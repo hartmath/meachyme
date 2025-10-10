@@ -13,6 +13,7 @@ import { Loading } from "@/components/Loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePerformance } from "@/hooks/usePerformance";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { EnableNotifications } from "@/components/EnableNotifications";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -52,6 +53,8 @@ function AppContent() {
   const [retrying, setRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const location = useLocation();
+  const [swUpdateAvailable, setSwUpdateAvailable] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
@@ -78,6 +81,36 @@ function AppContent() {
       // Connectivity probe failure is non-fatal; keep banner visible
       console.debug('Connectivity probe failed');
     }
+  };
+
+  // SW update-available banner
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg) return;
+        if (reg.waiting) {
+          setWaitingWorker(reg.waiting);
+          setSwUpdateAvailable(true);
+        }
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              setWaitingWorker(reg.waiting || newWorker);
+              setSwUpdateAvailable(true);
+            }
+          });
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+  }, []);
+
+  const handleSwUpdate = () => {
+    waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
   };
 
   // Reset error when route changes
@@ -111,7 +144,18 @@ function AppContent() {
           </Alert>
         </div>
       )}
+      {swUpdateAvailable && (
+        <div className="sticky top-0 z-50">
+          <Alert className="rounded-none">
+            <AlertDescription className="flex items-center justify-between w-full">
+              <span>An update is available.</span>
+              <Button size="sm" onClick={handleSwUpdate}>Update</Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <Suspense fallback={<Loading />}>
+        <EnableNotifications />
         <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
