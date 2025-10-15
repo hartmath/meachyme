@@ -637,7 +637,7 @@ export default function Events() {
                     </div>
                   </div>
                   
-              {eventLink.event_link ? (
+                  {eventLink.event_link ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -647,14 +647,14 @@ export default function Events() {
                       <ExternalLink className="h-3 w-3 mr-1" />
                       Open
                     </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/events/${eventLink.id}`)}
-                  className="ml-3 h-8 px-3 text-xs flex-shrink-0"
-                >
-                  Details
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/events/${eventLink.id}`)}
+                      className="ml-3 h-8 px-3 text-xs flex-shrink-0"
+                    >
+                      Details
                     </Button>
                   )}
                 </div>
@@ -684,14 +684,14 @@ export default function Events() {
                 </div>
               </div>
             ))}
+            {hasNextPage && (
+              <div className="p-3">
+                <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
+                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                </Button>
+              </div>
+            )}
           </div>
-          {hasNextPage && (
-            <div className="p-3">
-              <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
-                {isFetchingNextPage ? 'Loading...' : 'Load More'}
-              </Button>
-            </div>
-          )}
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
