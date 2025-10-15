@@ -357,6 +357,63 @@ export default function GroupChatDetail() {
     }
   };
 
+  // Start group call mutation
+  const startGroupCallMutation = useMutation({
+    mutationFn: async (callType: 'voice' | 'video') => {
+      const user = authUser;
+      if (!user || !id) throw new Error('Not authenticated or no group ID');
+
+      // Create group call record
+      const { data: callData, error } = await supabase
+        .from('group_calls')
+        .insert({
+          group_id: id,
+          initiator_id: user.id,
+          call_type: callType,
+          status: 'calling'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add initiator as participant
+      await supabase
+        .from('group_call_participants')
+        .insert({
+          call_id: callData.id,
+          user_id: user.id,
+          is_active: true
+        });
+
+      return callData;
+    },
+    onSuccess: (callData) => {
+      // Show success message and navigate to MEA Meet for now
+      toast({
+        title: "Group call started",
+        description: `Starting ${callData.call_type} call for ${group?.name}`,
+      });
+      // Navigate to MEA Meet page (coming soon)
+      navigate(`/meet/${callData.id}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to start call",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleStartVoiceCall = () => {
+    startGroupCallMutation.mutate('voice');
+  };
+
+  const handleStartVideoCall = () => {
+    startGroupCallMutation.mutate('video');
+  };
+
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { 

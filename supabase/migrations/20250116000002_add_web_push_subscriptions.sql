@@ -28,3 +28,6 @@ create index if not exists idx_web_push_subscriptions_user_id on public.web_push
 create index if not exists idx_web_push_subscriptions_created_at on public.web_push_subscriptions(created_at desc);
 
 
+
+
+

@@ -8,7 +8,7 @@ import { SearchModal } from "@/components/SearchModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,45 +43,48 @@ export default function Events() {
     return `https://${noSpaces}`;
   };
 
-  // Fetch shared event links
-  const { data: eventLinks, isLoading, error: queryError } = useQuery({
+  // Fetch shared event links with pagination
+  const pageSize = 10;
+  const {
+    data: paged,
+    isLoading,
+    error: queryError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage
+  } = useInfiniteQuery({
     queryKey: ['shared-event-links'],
-    enabled: !!authUser, // Only run if user is authenticated
-    queryFn: async () => {
+    enabled: !!authUser,
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
       try {
         const user = authUser;
-        if (!user) {
-          toast({
-            title: "Not authenticated",
-            description: "Please sign in to view events.",
-            variant: "destructive",
-          });
-          navigate("/auth");
-          return [];
-        }
+        if (!user) return { items: [], nextCursor: null };
 
-        const { data: linksData, error } = await supabase
+        let query = supabase
           .from('event_links_with_profiles')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(pageSize);
 
-        console.log('Events.tsx - Event links query:', { 
-          count: linksData?.length, 
-          error: error?.message,
-          data: linksData 
-        });
-
-        if (error) {
-          console.error('Events query error:', error);
+        if (pageParam) {
+          query = query.lt('created_at', pageParam);
         }
 
-        // Transform the data to match the expected format
-        const links = linksData?.map(link => ({
+        const { data: linksData, error } = await query;
+        if (error) {
+          console.error('Events query error:', error);
+          return { items: [], nextCursor: null };
+        }
+
+        const items = (linksData || []).map(link => ({
           ...link,
           profiles: link.profile_data
         }));
 
-        return links || [];
+        const last = items[items.length - 1];
+        const nextCursor = items.length === pageSize ? last?.created_at ?? null : null;
+        return { items, nextCursor };
       } catch (error) {
         console.error('Error in event links query:', error);
         toast({
@@ -89,9 +92,10 @@ export default function Events() {
           description: "Failed to load events. Please try again.",
           variant: "destructive",
         });
-        return [];
+        return { items: [], nextCursor: null };
       }
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     retry: 2,
     retryDelay: 1000,
     refetchOnWindowFocus: false,
@@ -223,6 +227,25 @@ export default function Events() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const categoryClass = (cat?: string | null) => {
+    switch ((cat || '').toLowerCase()) {
+      case 'business':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'social':
+        return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200';
+      case 'education':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
+      case 'entertainment':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'sports':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'technology':
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
+      default:
+        return 'bg-muted text-foreground';
+    }
   };
 
   const handlePostEvent = () => {
@@ -536,9 +559,9 @@ export default function Events() {
               </ol>
             </div>
           </div>
-        ) : eventLinks && eventLinks.length > 0 ? (
+        ) : paged && paged.pages?.length ? (
           <div className="space-y-3">
-            {eventLinks.map((eventLink) => (
+            {paged.pages.flatMap(p => p.items).map((eventLink) => (
               <div key={eventLink.id} className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
@@ -553,17 +576,26 @@ export default function Events() {
                       }`}>
                         {eventLink.event_type === 'created_event' ? 'Created Event' : 'External Link'}
                       </span>
+                      {eventLink.event_category && (
+                        <span className={`px-2 py-1 text-xs rounded-full ${categoryClass(eventLink.event_category)}`}>
+                          {eventLink.event_category}
+                        </span>
+                      )}
                     </div>
-                    {eventLink.image_url && (
-                      <div className="mb-2">
+                    <div className="mb-2">
+                      {eventLink.image_url ? (
                         <img
                           src={eventLink.image_url}
                           alt={eventLink.title}
                           className="w-full rounded-md object-cover max-h-48"
                           loading="lazy"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="w-full h-32 bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">
+                          No image
+                        </div>
+                      )}
+                    </div>
                     {eventLink.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                         {eventLink.description}
@@ -599,7 +631,7 @@ export default function Events() {
                       )}
                     </div>
 
-                <div className="flex items-center text-xs text-muted-foreground">
+                    <div className="flex items-center text-xs text-muted-foreground">
                       <Clock className="h-3 w-3 mr-1" />
                       <span>Posted {formatDate(eventLink.created_at)} at {formatTime(eventLink.created_at)}</span>
                     </div>
@@ -623,8 +655,8 @@ export default function Events() {
                   className="ml-3 h-8 px-3 text-xs flex-shrink-0"
                 >
                   Details
-                </Button>
-              )}
+                    </Button>
+                  )}
                 </div>
 
                 {/* Event Link Preview (only for shared links) */}
@@ -653,6 +685,13 @@ export default function Events() {
               </div>
             ))}
           </div>
+          {hasNextPage && (
+            <div className="p-3">
+              <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
+                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+              </Button>
+            </div>
+          )}
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
