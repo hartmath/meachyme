@@ -34,7 +34,7 @@ const Location = lazy(() => import("./pages/settings/Location"));
 const Welcome = lazy(() => import("./pages/onboarding/Welcome"));
 const RoleSelection = lazy(() => import("./pages/onboarding/RoleSelection"));
 const ProfileSetup = lazy(() => import("./pages/onboarding/ProfileSetup"));
-const GroupChatList = lazy(() => import("./pages/GroupChatList"));
+import GroupChatList from "./pages/GroupChatList";
 const CreateGroup = lazy(() => import("./pages/CreateGroup"));
 const GroupChatDetail = lazy(() => import("./pages/GroupChatDetail"));
 const MEAMeet = lazy(() => import("./pages/MEAMeet"));
