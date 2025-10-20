@@ -27,3 +27,6 @@ GRANT EXECUTE ON FUNCTION public.is_group_admin(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.is_group_creator(uuid) TO anon, authenticated;
 
 
+
+
+

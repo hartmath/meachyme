@@ -20,35 +20,24 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-  // Fetch people you've messaged (contacts)
+  // Fetch all available users to add to groups
   const { data: contacts, isLoading } = useQuery({
-    queryKey: ['user-contacts'],
+    queryKey: ['all-users-for-groups'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get users you've communicated with
-      const { data: conversations } = await supabase
-        .from('direct_messages')
-        .select('sender_id, recipient_id')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`);
-
-      if (!conversations || conversations.length === 0) return [];
-
-      // Get unique user IDs from conversations (excluding current user)
-      const contactUserIds = [...new Set(
-        conversations
-          .map(conv => conv.sender_id === user.id ? conv.recipient_id : conv.sender_id)
-          .filter(id => id !== user.id)
-      )];
-
-      if (contactUserIds.length === 0) return [];
-
-      // Get profiles for contacts
-      const { data: profiles } = await supabase
+      // Get all user profiles (excluding current user)
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('user_id, full_name, avatar_url, user_type')
-        .in('user_id', contactUserIds);
+        .neq('user_id', user.id)
+        .order('full_name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+      }
 
       return profiles || [];
     }
@@ -130,7 +119,7 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search contacts..."
+              placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -143,13 +132,13 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-              <p className="text-sm text-muted-foreground">Loading contacts...</p>
+              <p className="text-sm text-muted-foreground">Loading users...</p>
             </div>
           ) : filteredContacts.length === 0 ? (
             <div className="text-center py-8">
               <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">
-                {searchTerm ? 'No contacts found matching your search.' : 'No contacts available to add.'}
+                {searchTerm ? 'No users found matching your search.' : 'No users available to add.'}
               </p>
             </div>
           ) : (
