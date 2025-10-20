@@ -115,7 +115,9 @@ export default function GroupChatDetail() {
       const user = authUser;
       if (!user || !id) throw new Error('Not authenticated or no group ID');
 
-      const { error } = await supabase
+      console.log('Sending group message:', { group_id: id, sender_id: user.id, content: content.trim() });
+
+      const { data, error } = await supabase
         .from('group_messages')
         .insert({
           group_id: id,
@@ -124,9 +126,13 @@ export default function GroupChatDetail() {
           message_type: messageType,
           attachment_url: attachmentUrl,
           attachment_metadata: attachmentMetadata
-        });
+        })
+        .select();
+
+      console.log('Group message result:', { data, error });
 
       if (error) throw error;
+      return data;
 
       // Send push notifications to all group members except sender
       if (members && group) {
@@ -134,10 +140,10 @@ export default function GroupChatDetail() {
         const groupName = group.name;
         
         for (const member of members) {
-          if (member.profiles?.user_id !== user.id) {
+          if (member.user_id !== user.id) {
             try {
               await sendGroupMessageNotification(
-                member.profiles?.user_id,
+                member.user_id,
                 senderName,
                 groupName,
                 content.trim(),
@@ -155,9 +161,10 @@ export default function GroupChatDetail() {
       // Don't invalidate here - real-time subscription will handle updates
     },
     onError: (error) => {
+      console.error('Group message error:', error);
       toast({
         title: "Failed to send message",
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive"
       });
     }
