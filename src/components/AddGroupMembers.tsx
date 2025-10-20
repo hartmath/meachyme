@@ -30,8 +30,8 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
       // Get all user profiles (excluding current user)
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, avatar_url, user_type')
-        .neq('user_id', user.id)
+        .select('id, full_name, avatar_url, user_type')
+        .neq('id', user.id)
         .order('full_name', { ascending: true });
 
       if (error) {
@@ -45,7 +45,7 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
 
   // Filter contacts based on search term and exclude current members
   const filteredContacts = contacts?.filter(contact => {
-    const isNotMember = !currentMembers.includes(contact.user_id);
+    const isNotMember = !currentMembers.includes(contact.id);
     const matchesSearch = contact.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.user_type?.toLowerCase().includes(searchTerm.toLowerCase());
     return isNotMember && matchesSearch;
@@ -145,13 +145,13 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
             <div className="space-y-2">
               {filteredContacts.map((contact) => (
                 <div
-                  key={contact.user_id}
+                  key={contact.id}
                   className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedUsers.includes(contact.user_id)
+                    selectedUsers.includes(contact.id)
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:bg-muted/50'
                   }`}
-                  onClick={() => handleUserSelect(contact.user_id)}
+                  onClick={() => handleUserSelect(contact.id)}
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={contact.avatar_url} alt={contact.full_name} />
@@ -169,7 +169,7 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
                     </div>
                   </div>
 
-                  {selectedUsers.includes(contact.user_id) && (
+                  {selectedUsers.includes(contact.id) && (
                     <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                       <div className="w-2 h-2 bg-primary-foreground rounded-full" />
                     </div>
