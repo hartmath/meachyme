@@ -71,6 +71,11 @@ export default function GroupSettings() {
         .order('joined_at', { ascending: true });
 
       if (error) throw error;
+      
+      // Debug logging
+      console.log('Group members fetched:', membersData);
+      console.log('Current members user_ids:', membersData?.map(m => m.user_id));
+      
       return membersData;
     },
     enabled: !!id
@@ -553,7 +558,11 @@ export default function GroupSettings() {
       {showAddMembers && id && (
         <AddGroupMembers
           groupId={id}
-          currentMembers={members?.map(m => m.user_id).filter(Boolean) || []}
+          currentMembers={(() => {
+            const currentMemberIds = members?.map(m => m.user_id).filter(Boolean) || [];
+            console.log('Passing currentMembers to AddGroupMembers:', currentMemberIds);
+            return currentMemberIds;
+          })()}
           onClose={() => setShowAddMembers(false)}
         />
       )}

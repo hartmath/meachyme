@@ -48,8 +48,19 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
     const isNotMember = !currentMembers.includes(contact.id);
     const matchesSearch = contact.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.user_type?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Debug logging
+    if (!isNotMember) {
+      console.log('Filtering out existing member:', contact.id, contact.full_name);
+    }
+    
     return isNotMember && matchesSearch;
   }) || [];
+
+  // Debug logging
+  console.log('Current members:', currentMembers);
+  console.log('Available contacts:', contacts?.length);
+  console.log('Filtered contacts:', filteredContacts.length);
 
   // Add members mutation
   const addMembersMutation = useMutation({
@@ -57,6 +68,13 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
       if (!groupId || userIds.length === 0) throw new Error('Invalid data');
 
       console.log('Adding members:', { groupId, userIds });
+
+      // Check for duplicates before attempting to add
+      const duplicateUsers = userIds.filter(userId => currentMembers.includes(userId));
+      if (duplicateUsers.length > 0) {
+        console.error('Attempting to add duplicate members:', duplicateUsers);
+        throw new Error(`Cannot add members who are already in the group: ${duplicateUsers.join(', ')}`);
+      }
 
       // Get current user info
       const { data: { user } } = await supabase.auth.getUser();
