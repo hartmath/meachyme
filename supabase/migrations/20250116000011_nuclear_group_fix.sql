@@ -40,6 +40,10 @@ BEGIN
 END $$;
 
 -- Step 3: Drop all helper functions to start fresh
+-- Drop all variations of these functions to avoid conflicts
+DROP FUNCTION IF EXISTS public.is_group_creator CASCADE;
+DROP FUNCTION IF EXISTS public.is_group_member CASCADE;
+DROP FUNCTION IF EXISTS public.is_group_admin CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_creator_simple CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_member_simple CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_admin_simple CASCADE;
@@ -47,6 +51,23 @@ DROP FUNCTION IF EXISTS public.is_group_creator_base CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_creator_wrapper CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_admin_base CASCADE;
 DROP FUNCTION IF EXISTS public.is_group_admin_wrapper CASCADE;
+
+-- Also drop any functions with different parameter names
+DO $$
+DECLARE
+    func_record RECORD;
+BEGIN
+    -- Drop all functions named is_group_creator, is_group_member, is_group_admin
+    FOR func_record IN 
+        SELECT proname, oidvectortypes(proargtypes) as argtypes
+        FROM pg_proc 
+        WHERE proname IN ('is_group_creator', 'is_group_member', 'is_group_admin')
+        AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS public.%I(%s) CASCADE', 
+                      func_record.proname, func_record.argtypes);
+    END LOOP;
+END $$;
 
 -- Step 4: Create simple, working helper functions
 CREATE OR REPLACE FUNCTION public.is_group_creator(p_group_id uuid)
