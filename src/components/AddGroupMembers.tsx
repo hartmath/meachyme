@@ -56,7 +56,9 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
     mutationFn: async (userIds: string[]) => {
       if (!groupId || userIds.length === 0) throw new Error('Invalid data');
 
-      const { error } = await supabase
+      console.log('Adding members:', { groupId, userIds });
+
+      const { data, error } = await supabase
         .from('group_members')
         .insert(
           userIds.map(userId => ({
@@ -64,9 +66,13 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
             user_id: userId,
             role: 'member'
           }))
-        );
+        )
+        .select();
+
+      console.log('Add members result:', { data, error });
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] });
@@ -77,9 +83,10 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
       onClose();
     },
     onError: (error) => {
+      console.error('Add members error:', error);
       toast({
         title: "Failed to add members",
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive"
       });
     }

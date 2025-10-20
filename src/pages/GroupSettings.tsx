@@ -553,7 +553,7 @@ export default function GroupSettings() {
       {showAddMembers && id && (
         <AddGroupMembers
           groupId={id}
-          currentMembers={members?.map(m => m.profiles?.user_id).filter(Boolean) || []}
+          currentMembers={members?.map(m => m.user_id).filter(Boolean) || []}
           onClose={() => setShowAddMembers(false)}
         />
       )}
