@@ -57,7 +57,7 @@ export default function GroupChatList() {
               content,
               created_at,
               sender_id,
-              profiles!group_messages_sender_id_fkey (
+              profiles!inner (
                 full_name
               )
             `)
@@ -70,7 +70,7 @@ export default function GroupChatList() {
           const { data: onlineMembers } = await supabase
             .from('group_members')
             .select(`
-              profiles!group_members_user_id_fkey (
+              profiles!inner (
                 is_online
               )
             `)
