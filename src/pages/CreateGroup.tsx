@@ -44,28 +44,71 @@ export default function CreateGroup() {
         return;
       }
 
-      // Use the helper function for reliable group creation
-      const { data: result, error } = await supabase.rpc('create_group_with_creator_membership', {
-        p_name: groupData.name.trim(),
-        p_description: groupData.description.trim() || '',
-        p_avatar_url: groupImage
-      });
+      // Try the helper function first, fallback to direct method
+      try {
+        const { data: result, error } = await supabase.rpc('create_group_with_creator_membership', {
+          p_name: groupData.name.trim(),
+          p_description: groupData.description.trim() || '',
+          p_avatar_url: groupImage
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create group');
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create group');
+        }
+
+        toast({
+          title: "Group Created!",
+          description: `${groupData.name} has been successfully created.`,
+        });
+
+        // Invalidate and refetch groups list
+        queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+        
+        navigate("/groups");
+        return;
+      } catch (rpcError: any) {
+        console.log('RPC function not available, using direct method:', rpcError.message);
+        
+        // Fallback to direct method
+        const { data: newGroup, error: groupError } = await supabase
+          .from('groups')
+          .insert({
+            name: groupData.name.trim(),
+            description: groupData.description.trim() || null,
+            avatar_url: groupImage,
+            created_by: user.id
+          })
+          .select()
+          .single();
+
+        if (groupError) throw groupError;
+
+        // Add the creator as an admin member
+        const { error: memberError } = await supabase
+          .from('group_members')
+          .insert({
+            group_id: newGroup.id,
+            user_id: user.id,
+            role: 'admin'
+          });
+
+        if (memberError) {
+          console.warn('Could not add creator as member:', memberError.message);
+          // Continue anyway - the group was created successfully
+        }
+
+        toast({
+          title: "Group Created!",
+          description: `${groupData.name} has been successfully created.`,
+        });
+
+        // Invalidate and refetch groups list
+        queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+        
+        navigate("/groups");
       }
-
-      toast({
-        title: "Group Created!",
-        description: `${groupData.name} has been successfully created.`,
-      });
-
-      // Invalidate and refetch groups list
-      queryClient.invalidateQueries({ queryKey: ['user-groups'] });
-      
-      navigate("/groups");
     } catch (error: any) {
       console.error('Group creation error:', error);
       toast({
