@@ -11,26 +11,17 @@ export default function GroupChatList() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch user's groups from Supabase
+  // Fetch user's groups from Supabase (using new group system)
   const { data: groups, isLoading } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get groups where user is a member
+      // Get groups where user is a member (using new tables)
       const { data: userGroups, error } = await supabase
-        .from('group_members')
-        .select(`
-          group_id,
-          groups (
-            id,
-            name,
-            description,
-            avatar_url,
-            created_at
-          )
-        `)
+        .from('new_group_members')
+        .select('group_id')
         .eq('user_id', user.id);
 
       if (error) {
@@ -38,26 +29,36 @@ export default function GroupChatList() {
         return [];
       }
 
+      if (!userGroups || userGroups.length === 0) return [];
+
+      // Get group details for each group_id
+      const groupIds = userGroups.map(ug => ug.group_id);
+      const { data: groupDetails, error: groupsError } = await supabase
+        .from('new_groups')
+        .select('id, name, description, avatar_url, created_at')
+        .in('id', groupIds);
+
+      if (groupsError) {
+        console.error('Error fetching group details:', groupsError);
+        return [];
+      }
+
       // Get member counts and last messages for each group
       const groupsWithDetails = await Promise.all(
-        userGroups.map(async (userGroup) => {
-          const group = userGroup.groups;
-          if (!group) return null;
-
+        (groupDetails || []).map(async (group) => {
           // Get member count
           const { count: memberCount } = await supabase
-            .from('group_members')
+            .from('new_group_members')
             .select('*', { count: 'exact', head: true })
             .eq('group_id', group.id);
 
           // Get last message
           const { data: lastMessage } = await supabase
-            .from('group_messages')
+            .from('new_group_messages')
             .select(`
               content,
               created_at,
-              sender_id,
-              profiles!inner (
+              profiles (
                 full_name
               )
             `)
@@ -66,11 +67,11 @@ export default function GroupChatList() {
             .limit(1)
             .single();
 
-          // Get online member count (simplified - just check if any members are online)
+          // Get online members count
           const { data: onlineMembers } = await supabase
-            .from('group_members')
+            .from('new_group_members')
             .select(`
-              profiles!inner (
+              profiles (
                 is_online
               )
             `)

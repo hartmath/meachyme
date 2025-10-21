@@ -36,7 +36,7 @@ export default function GroupChatDetail() {
       if (!id) return null;
 
       const { data: groupData, error } = await supabase
-        .from('groups')
+        .from('new_groups')
         .select('*')
         .eq('id', id)
         .single();
@@ -59,7 +59,7 @@ export default function GroupChatDetail() {
       if (!id) return [];
 
       const { data: membersData, error } = await supabase
-        .from('group_members')
+        .from('new_group_members')
         .select(`
           role,
           joined_at,
@@ -86,7 +86,7 @@ export default function GroupChatDetail() {
       if (!id) return [];
 
       const { data: messagesData, error } = await supabase
-        .from('group_messages')
+        .from('new_group_messages')
         .select(`
           id,
           content,
@@ -95,7 +95,7 @@ export default function GroupChatDetail() {
           attachment_metadata,
           created_at,
           sender_id,
-          profiles!group_messages_sender_id_fkey (
+          profiles!new_group_messages_sender_id_fkey (
             full_name,
             avatar_url
           )
@@ -118,7 +118,7 @@ export default function GroupChatDetail() {
       console.log('Sending group message:', { group_id: id, sender_id: user.id, content: content.trim() });
 
       const { data, error } = await supabase
-        .from('group_messages')
+        .from('new_group_messages')
         .insert({
           group_id: id,
           sender_id: user.id,
@@ -202,7 +202,7 @@ export default function GroupChatDetail() {
       const content = messageType === 'image' ? '📷 Image' : `📎 ${fileData.fileName}`;
 
       const { error } = await supabase
-        .from('group_messages')
+        .from('new_group_messages')
         .insert({
           group_id: id,
           sender_id: user.id,
@@ -234,13 +234,13 @@ export default function GroupChatDetail() {
     if (!id) return;
 
     const channel = supabase
-      .channel('group_messages')
+      .channel('new_group_messages')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'group_messages',
+          table: 'new_group_messages',
           filter: `group_id=eq.${id}`
         },
         () => {
@@ -271,7 +271,7 @@ export default function GroupChatDetail() {
 
         // Mark all unread group messages as read
         const { error } = await supabase
-          .from('group_messages')
+          .from('new_group_messages')
           .update({ is_read: true })
           .eq('group_id', id)
           .neq('sender_id', user.id)
