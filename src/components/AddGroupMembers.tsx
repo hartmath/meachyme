@@ -80,18 +80,8 @@ export function AddGroupMembers({ groupId, currentMembers, onClose }: AddGroupMe
       const { data: { user } } = await supabase.auth.getUser();
       console.log('Current user:', user?.id);
 
-      // Test helper functions
-      try {
-        const { data: isCreator } = await supabase.rpc('is_group_creator', { p_group_id: groupId });
-        const { data: isMember } = await supabase.rpc('is_group_member', { p_group_id: groupId });
-        const { data: isAdmin } = await supabase.rpc('is_group_admin', { p_group_id: groupId });
-        console.log('Helper function results:', { isCreator, isMember, isAdmin });
-      } catch (helperError) {
-        console.error('Helper function error:', helperError);
-      }
-
       const { data, error } = await supabase
-        .from('group_members')
+        .from('new_group_members')
         .insert(
           userIds.map(userId => ({
             group_id: groupId,

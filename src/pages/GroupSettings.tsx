@@ -36,7 +36,7 @@ export default function GroupSettings() {
       if (!id) return null;
 
       const { data: groupData, error } = await supabase
-        .from('groups')
+        .from('new_groups')
         .select('*')
         .eq('id', id)
         .single();
@@ -54,7 +54,7 @@ export default function GroupSettings() {
       if (!id) return [];
 
       const { data: membersData, error } = await supabase
-        .from('group_members')
+        .from('new_group_members')
         .select(`
           id,
           role,
@@ -91,7 +91,7 @@ export default function GroupSettings() {
       if (!user) return null;
 
       const { data: memberData } = await supabase
-        .from('group_members')
+        .from('new_group_members')
         .select('role')
         .eq('group_id', id)
         .eq('user_id', user.id)
@@ -108,7 +108,7 @@ export default function GroupSettings() {
       if (!id) throw new Error('No group ID');
 
       const { error } = await supabase
-        .from('groups')
+        .from('new_groups')
         .update({
           name: data.name.trim(),
           description: data.description.trim() || null
