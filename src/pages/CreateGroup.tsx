@@ -47,9 +47,9 @@ export default function CreateGroup() {
       // Use direct method with proper authentication
       console.log('Creating group with user:', user.id);
       
-      // Create the group (avoid .single() select to reduce policy checks)
+      // Create the group using new_groups table
       const { data: inserted, error: groupError } = await supabase
-        .from('groups')
+        .from('new_groups')
         .insert({
           name: groupData.name.trim(),
           description: groupData.description.trim() || null,
@@ -72,18 +72,7 @@ export default function CreateGroup() {
       const newGroupId = inserted?.[0]?.id;
       console.log('Group created successfully:', newGroupId);
 
-      // Ensure membership exists (fallback in case trigger didn't run)
-      if (newGroupId) {
-        const { error: upsertError } = await supabase
-          .from('group_members')
-          .upsert(
-            { group_id: newGroupId, user_id: user.id, role: 'admin' },
-            { onConflict: 'group_id,user_id' }
-          );
-        if (upsertError) {
-          console.warn('Membership upsert warning:', upsertError.message);
-        }
-      }
+      // Trigger automatically adds creator as admin, no manual insert needed
 
       toast({
         title: "Group Created!",
