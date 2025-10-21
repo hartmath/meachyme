@@ -1,13 +1,14 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-// Web Vitals reporting
+// Web Vitals reporting (use onINP instead of deprecated onFID)
 try {
-  import('web-vitals').then(({ onCLS, onFID, onLCP, onINP }) => {
+  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB, onINP }) => {
     import('./utils/vitals').then(({ reportWebVitals }) => {
       onCLS(reportWebVitals);
-      onFID(reportWebVitals);
+      onFCP(reportWebVitals);
       onLCP(reportWebVitals);
+      onTTFB(reportWebVitals);
       onINP(reportWebVitals);
     });
   });

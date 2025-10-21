@@ -60,7 +60,12 @@ export default function CreateGroup() {
         .single();
 
       if (groupError) {
-        console.error('Group creation error:', groupError);
+        console.error('Group creation error:', {
+          message: groupError.message,
+          details: (groupError as any).details,
+          hint: (groupError as any).hint,
+          code: groupError.code,
+        });
         throw groupError;
       }
 
