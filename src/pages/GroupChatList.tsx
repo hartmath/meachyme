@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
+import { useEffect } from "react";
 
 export default function GroupChatList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch user's groups from Supabase (using new group system)
@@ -58,14 +60,23 @@ export default function GroupChatList() {
             .select(`
               content,
               created_at,
-              profiles (
-                full_name
-              )
+              sender_id
             `)
             .eq('group_id', group.id)
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
+
+          // Get sender name for last message
+          let senderName = 'Someone';
+          if (lastMessage) {
+            const { data: senderProfile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', lastMessage.sender_id)
+              .single();
+            senderName = senderProfile?.full_name || 'Someone';
+          }
 
           // Get online members count
           const { data: onlineMembers } = await supabase
@@ -85,7 +96,7 @@ export default function GroupChatList() {
             description: group.description,
             avatar_url: group.avatar_url,
             lastMessage: lastMessage ? 
-              `${lastMessage.profiles?.full_name || 'Someone'}: ${lastMessage.content}` : 
+              `${senderName}: ${lastMessage.content}` : 
               'No messages yet',
             timestamp: lastMessage ? 
               new Date(lastMessage.created_at).toLocaleTimeString([], { 
@@ -104,6 +115,35 @@ export default function GroupChatList() {
       return groupsWithDetails.filter(Boolean);
     }
   });
+
+  // Set up real-time subscription for group messages to update chat list
+  useEffect(() => {
+    console.log('Setting up real-time subscription for group chat list');
+
+    const channel = supabase
+      .channel('group_chat_list_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'new_group_messages'
+        },
+        (payload) => {
+          console.log('New message received, updating chat list:', payload);
+          // Invalidate user groups query to refresh the chat list
+          queryClient.invalidateQueries({ queryKey: ['user-groups'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Group chat list real-time subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up group chat list real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const filteredGroups = groups?.filter(group =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
