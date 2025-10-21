@@ -47,8 +47,8 @@ export default function CreateGroup() {
       // Use direct method with proper authentication
       console.log('Creating group with user:', user.id);
       
-      // Create the group
-      const { data: newGroup, error: groupError } = await supabase
+      // Create the group (avoid .single() select to reduce policy checks)
+      const { data: inserted, error: groupError } = await supabase
         .from('groups')
         .insert({
           name: groupData.name.trim(),
@@ -56,8 +56,8 @@ export default function CreateGroup() {
           avatar_url: groupImage,
           created_by: user.id
         })
-        .select()
-        .single();
+        .select('id')
+        .limit(1);
 
       if (groupError) {
         console.error('Group creation error:', {
@@ -69,13 +69,14 @@ export default function CreateGroup() {
         throw groupError;
       }
 
-      console.log('Group created successfully:', newGroup.id);
+      const newGroupId = inserted?.[0]?.id;
+      console.log('Group created successfully:', newGroupId);
 
       // Add the creator as an admin member
       const { error: memberError } = await supabase
         .from('group_members')
         .insert({
-          group_id: newGroup.id,
+          group_id: newGroupId,
           user_id: user.id,
           role: 'admin'
         });
