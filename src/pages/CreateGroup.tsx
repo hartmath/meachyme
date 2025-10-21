@@ -72,22 +72,8 @@ export default function CreateGroup() {
       const newGroupId = inserted?.[0]?.id;
       console.log('Group created successfully:', newGroupId);
 
-      // Add the creator as an admin member
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: newGroupId,
-          user_id: user.id,
-          role: 'admin'
-        });
-
-      if (memberError) {
-        console.warn('Could not add creator as member:', memberError.message);
-        // Continue anyway - the group was created successfully
-        // The RLS policy should handle this automatically
-      } else {
-        console.log('Creator added as admin member successfully');
-      }
+      // No need to insert membership here; trigger adds creator as admin
+      // We rely on server-side trigger: public.add_creator_as_admin
 
       toast({
         title: "Group Created!",
