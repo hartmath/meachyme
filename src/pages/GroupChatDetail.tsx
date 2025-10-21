@@ -14,6 +14,7 @@ import { MessageReactions } from "@/components/MessageReactions";
 import { VoiceMessagePlayer } from "@/components/VoiceMessagePlayer";
 import { VoiceMessageRecorder } from "@/components/VoiceMessageRecorder";
 import { useAuth } from "@/contexts/AuthContext";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
 
 export default function GroupChatDetail() {
   const { id } = useParams<{ id: string }>();
@@ -506,8 +507,12 @@ export default function GroupChatDetail() {
           </Button>
           
           <Avatar className="h-8 w-8">
-            <AvatarImage src={group.avatar_url} alt={group.name} />
-            <AvatarFallback>{getInitials(group.name)}</AvatarFallback>
+            <ImageWithFallback
+              src={group.avatar_url}
+              alt={group.name}
+              className="h-full w-full rounded-full object-cover"
+              fallback={<AvatarFallback>{getInitials(group.name)}</AvatarFallback>}
+            />
           </Avatar>
           
           <div>
@@ -615,8 +620,12 @@ export default function GroupChatDetail() {
             return (
               <div key={message.id} className="flex items-start gap-2">
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={userProfiles[message.sender_id]?.avatar_url} alt={userProfiles[message.sender_id]?.full_name} />
-                  <AvatarFallback>{getInitials(userProfiles[message.sender_id]?.full_name || 'U')}</AvatarFallback>
+                  <ImageWithFallback
+                    src={userProfiles[message.sender_id]?.avatar_url}
+                    alt={userProfiles[message.sender_id]?.full_name || 'User'}
+                    className="h-full w-full rounded-full object-cover"
+                    fallback={<AvatarFallback>{getInitials(userProfiles[message.sender_id]?.full_name || 'U')}</AvatarFallback>}
+                  />
                 </Avatar>
                 <div>
                   <div className="flex items-center gap-2 mb-1">

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
 
 interface GroupMember {
   group_id: string;
@@ -247,15 +248,12 @@ export default function GroupChatList() {
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm">
-                    {group.avatar_url ? (
-                      <img 
-                        src={group.avatar_url} 
-                        alt={group.name} 
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      group.avatar
-                    )}
+                    <ImageWithFallback
+                      src={group.avatar_url}
+                      alt={group.name}
+                      className="w-full h-full rounded-full object-cover"
+                      fallback={<span>{group.avatar}</span>}
+                    />
                   </div>
                   {group.isOnline && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>

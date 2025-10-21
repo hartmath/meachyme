@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChatContextMenu, useChatContextMenu } from "@/components/ChatContextMenu";
 import { Loading } from "@/components/Loading";
 import { useAuth } from "@/contexts/AuthContext";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -281,15 +282,12 @@ export default function Chats() {
             >
               {/* Avatar */}
               <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold mr-3 text-sm">
-                {chat.avatar_url ? (
-                  <img 
-                    src={chat.avatar_url} 
-                    alt={chat.name} 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  chat.avatar
-                )}
+                <ImageWithFallback
+                  src={chat.avatar_url}
+                  alt={chat.name}
+                  className="w-full h-full rounded-full object-cover"
+                  fallback={<span>{chat.avatar}</span>}
+                />
               </div>
 
               {/* Chat Info */}

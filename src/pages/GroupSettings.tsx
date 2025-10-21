@@ -160,7 +160,7 @@ export default function GroupSettings() {
 
       // Update group with new avatar
       const { error: updateError } = await supabase
-        .from('groups')
+        .from('new_groups')
         .update({ avatar_url: publicUrl })
         .eq('id', id);
 
