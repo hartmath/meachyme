@@ -12,6 +12,11 @@ export function ImageWithFallback({ src, alt, fallback, className }: ImageWithFa
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Debug logging
+  if (import.meta.env.DEV) {
+    console.log('ImageWithFallback:', { src, alt, hasError, isLoading });
+  }
+
   if (!src || hasError) {
     return <>{fallback}</>;
   }
