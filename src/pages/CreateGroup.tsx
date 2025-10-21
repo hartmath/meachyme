@@ -44,30 +44,18 @@ export default function CreateGroup() {
         return;
       }
 
-      // Create the group
-      const { data: newGroup, error: groupError } = await supabase
-        .from('groups')
-        .insert({
-          name: groupData.name.trim(),
-          description: groupData.description.trim() || null,
-          avatar_url: groupImage,
-          created_by: user.id
-        })
-        .select()
-        .single();
+      // Use the helper function for reliable group creation
+      const { data: result, error } = await supabase.rpc('create_group_with_creator_membership', {
+        p_name: groupData.name.trim(),
+        p_description: groupData.description.trim() || '',
+        p_avatar_url: groupImage
+      });
 
-      if (groupError) throw groupError;
+      if (error) throw error;
 
-      // Add the creator as an admin member
-      const { error: memberError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: newGroup.id,
-          user_id: user.id,
-          role: 'admin'
-        });
-
-      if (memberError) throw memberError;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create group');
+      }
 
       toast({
         title: "Group Created!",
@@ -79,9 +67,10 @@ export default function CreateGroup() {
       
       navigate("/groups");
     } catch (error: any) {
+      console.error('Group creation error:', error);
       toast({
         title: "Failed to create group",
-        description: error.message,
+        description: error.message || 'An unexpected error occurred',
         variant: "destructive"
       });
     }
