@@ -7,7 +7,7 @@ CREATE TABLE public.new_groups (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     avatar_url TEXT,
-    created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -16,7 +16,7 @@ CREATE TABLE public.new_groups (
 CREATE TABLE public.new_group_members (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     group_id UUID NOT NULL REFERENCES public.new_groups(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     role VARCHAR(20) NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
     joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     UNIQUE(group_id, user_id)
@@ -26,7 +26,7 @@ CREATE TABLE public.new_group_members (
 CREATE TABLE public.new_group_messages (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     group_id UUID NOT NULL REFERENCES public.new_groups(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     message_type VARCHAR(20) NOT NULL DEFAULT 'text' CHECK (message_type IN ('text', 'image', 'file', 'voice')),
     attachment_url TEXT,
@@ -125,7 +125,24 @@ CREATE TRIGGER trg_add_creator_to_new_group
 AFTER INSERT ON public.new_groups
 FOR EACH ROW EXECUTE FUNCTION public.add_creator_to_new_group();
 
--- Step 7: Create indexes for performance
+-- Step 7: Create foreign key constraints
+ALTER TABLE public.new_group_members 
+ADD CONSTRAINT fk_new_group_members_group_id 
+FOREIGN KEY (group_id) REFERENCES public.new_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE public.new_group_members 
+ADD CONSTRAINT fk_new_group_members_user_id 
+FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE public.new_group_messages 
+ADD CONSTRAINT fk_new_group_messages_group_id 
+FOREIGN KEY (group_id) REFERENCES public.new_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE public.new_group_messages 
+ADD CONSTRAINT fk_new_group_messages_sender_id 
+FOREIGN KEY (sender_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+-- Step 8: Create indexes for performance
 CREATE INDEX idx_new_group_members_group_id ON public.new_group_members(group_id);
 CREATE INDEX idx_new_group_members_user_id ON public.new_group_members(user_id);
 CREATE INDEX idx_new_group_messages_group_id ON public.new_group_messages(group_id);

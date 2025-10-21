@@ -95,7 +95,7 @@ export default function GroupChatDetail() {
           attachment_metadata,
           created_at,
           sender_id,
-          profiles!new_group_messages_sender_id_fkey (
+          profiles!inner (
             full_name,
             avatar_url
           )
