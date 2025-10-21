@@ -63,7 +63,7 @@ export default function GroupChatDetail() {
         .select(`
           role,
           joined_at,
-          user_id,
+            user_id,
           profiles!inner (
             id,
             full_name,

@@ -30,3 +30,4 @@ GRANT EXECUTE ON FUNCTION public.is_group_creator(uuid) TO anon, authenticated;
 
 
 
+
