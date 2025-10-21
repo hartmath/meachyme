@@ -288,8 +288,6 @@ export default function Chats() {
                   className="w-full h-full rounded-full object-cover"
                   fallback={<span>{chat.avatar}</span>}
                 />
-                {/* Debug: Show avatar URL in console */}
-                {import.meta.env.DEV && console.log('Chat avatar URL:', chat.name, chat.avatar_url)}
               </div>
 
               {/* Chat Info */}
