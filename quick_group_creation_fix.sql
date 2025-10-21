@@ -41,17 +41,22 @@ CREATE OR REPLACE FUNCTION public.create_group_with_creator_membership(p_name te
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     current_user_id UUID;
     new_group_id UUID;
     result json;
 BEGIN
-    -- Get current user
+    -- Get current user - try multiple methods
     current_user_id := auth.uid();
     
+    -- Debug: log the user ID
+    RAISE NOTICE 'Current user ID: %', current_user_id;
+    
     IF current_user_id IS NULL THEN
-        RETURN json_build_object('success', false, 'error', 'User not authenticated');
+        RAISE NOTICE 'User not authenticated - auth.uid() returned NULL';
+        RETURN json_build_object('success', false, 'error', 'User not authenticated - please sign in again');
     END IF;
     
     -- Validate input
@@ -61,13 +66,19 @@ BEGIN
     
     -- Try to create group
     BEGIN
+        RAISE NOTICE 'Creating group with name: %, user: %', trim(p_name), current_user_id;
+        
         INSERT INTO public.groups (name, description, avatar_url, created_by)
         VALUES (trim(p_name), COALESCE(trim(p_description), ''), p_avatar_url, current_user_id)
         RETURNING id INTO new_group_id;
         
+        RAISE NOTICE 'Group created with ID: %', new_group_id;
+        
         -- Try to add creator as admin member
         INSERT INTO public.group_members (group_id, user_id, role)
         VALUES (new_group_id, current_user_id, 'admin');
+        
+        RAISE NOTICE 'Creator added as admin member';
         
         RETURN json_build_object(
             'success', true, 
@@ -77,6 +88,7 @@ BEGIN
         
     EXCEPTION
         WHEN OTHERS THEN
+            RAISE NOTICE 'Error creating group: %', SQLERRM;
             RETURN json_build_object(
                 'success', false, 
                 'error', SQLERRM,

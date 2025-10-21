@@ -46,6 +46,13 @@ export default function CreateGroup() {
 
       // Try the helper function first, fallback to direct method
       try {
+        // Ensure we have a fresh auth session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+          throw new Error('Authentication session expired. Please sign in again.');
+        }
+
+        console.log('Calling RPC with user:', user.id);
         const { data: result, error } = await supabase.rpc('create_group_with_creator_membership', {
           p_name: groupData.name.trim(),
           p_description: groupData.description.trim() || '',
@@ -54,6 +61,7 @@ export default function CreateGroup() {
 
         if (error) throw error;
 
+        console.log('RPC result:', result);
         if (!result.success) {
           throw new Error(result.error || 'Failed to create group');
         }
