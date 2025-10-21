@@ -28,6 +28,7 @@ export default function GroupChatDetail() {
   const [isTyping, setIsTyping] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userProfiles, setUserProfiles] = useState<Record<string, { full_name: string; avatar_url: string }>>({});
 
   // Fetch group details
   const { data: group, isLoading: groupLoading } = useQuery({
@@ -51,6 +52,36 @@ export default function GroupChatDetail() {
   useEffect(() => {
     setCurrentUserId(authUser?.id || null);
   }, [authUser?.id]);
+
+  // Fetch user profiles for messages
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+
+    const fetchUserProfiles = async () => {
+      const senderIds = [...new Set(messages.map(m => m.sender_id))];
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', senderIds);
+
+      if (error) {
+        console.error('Error fetching user profiles:', error);
+        return;
+      }
+
+      const profileMap: Record<string, { full_name: string; avatar_url: string }> = {};
+      profiles?.forEach(profile => {
+        profileMap[profile.id] = {
+          full_name: profile.full_name || 'Unknown User',
+          avatar_url: profile.avatar_url || ''
+        };
+      });
+
+      setUserProfiles(profileMap);
+    };
+
+    fetchUserProfiles();
+  }, [messages]);
 
   // Fetch group members
   const { data: members, isLoading: membersLoading } = useQuery({
@@ -94,16 +125,16 @@ export default function GroupChatDetail() {
           attachment_url,
           attachment_metadata,
           created_at,
-          sender_id,
-          profiles!inner (
-            full_name,
-            avatar_url
-          )
+          sender_id
         `)
         .eq('group_id', id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
+      console.log('Fetched messages:', messagesData);
       return messagesData;
     },
     enabled: !!id
@@ -576,13 +607,13 @@ export default function GroupChatDetail() {
             return (
               <div key={message.id} className="flex items-start gap-2">
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={message.profiles?.avatar_url} alt={message.profiles?.full_name} />
-                  <AvatarFallback>{getInitials(message.profiles?.full_name || 'U')}</AvatarFallback>
+                  <AvatarImage src={userProfiles[message.sender_id]?.avatar_url} alt={userProfiles[message.sender_id]?.full_name} />
+                  <AvatarFallback>{getInitials(userProfiles[message.sender_id]?.full_name || 'U')}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-medium text-foreground">
-                      {message.profiles?.full_name || 'Unknown User'}
+                      {userProfiles[message.sender_id]?.full_name || 'Unknown User'}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                       {formatTime(message.created_at)}
