@@ -103,7 +103,7 @@ export default function GroupChatList() {
                 .select('full_name')
                 .eq('id', msg.sender_id)
                 .single();
-              senderName = senderProfile?.full_name || 'Someone';
+              senderName = senderProfile?.full_name ?? 'Someone';
             }
             messageContent = msg.content || '';
             messageTime = msg.created_at || '';
