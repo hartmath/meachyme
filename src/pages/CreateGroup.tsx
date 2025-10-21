@@ -72,8 +72,18 @@ export default function CreateGroup() {
       const newGroupId = inserted?.[0]?.id;
       console.log('Group created successfully:', newGroupId);
 
-      // No need to insert membership here; trigger adds creator as admin
-      // We rely on server-side trigger: public.add_creator_as_admin
+      // Ensure membership exists (fallback in case trigger didn't run)
+      if (newGroupId) {
+        const { error: upsertError } = await supabase
+          .from('group_members')
+          .upsert(
+            { group_id: newGroupId, user_id: user.id, role: 'admin' },
+            { onConflict: 'group_id,user_id' }
+          );
+        if (upsertError) {
+          console.warn('Membership upsert warning:', upsertError.message);
+        }
+      }
 
       toast({
         title: "Group Created!",
