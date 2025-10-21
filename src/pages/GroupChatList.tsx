@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Search, Users, Plus, MoreVertical } from "lucide-react";
+import { Search, Users, Plus, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -194,14 +194,6 @@ export default function GroupChatList() {
       {/* Header */}
       <header className="flex items-center justify-between p-3 border-b border-border bg-card">
         <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/chats")}
-            className="mr-2 h-8 w-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <h1 className="text-lg font-semibold">Group Chats</h1>
         </div>
         
@@ -318,4 +310,179 @@ export default function GroupChatList() {
       </div>
     </div>
   );
+}
+
+
+                        className="w-full h-full rounded-full object-cover"
+
+
+                      />
+
+
+                    ) : (
+
+
+                      group.avatar
+
+
+                    )}
+
+
+                  </div>
+
+
+                  {group.isOnline && (
+
+
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
+
+
+                  )}
+
+                </div>
+
+                
+                
+                <div className="flex-1 min-w-0 ml-3">
+
+
+                  <div className="flex items-center justify-between">
+
+
+                    <h3 className="font-semibold text-foreground truncate text-sm">
+
+
+                      {group.name}
+
+
+                    </h3>
+
+
+                    <div className="flex items-center space-x-2">
+
+
+                      <span className="text-xs text-muted-foreground">
+
+
+                        {group.timestamp}
+
+
+                      </span>
+
+
+                      <Button
+
+
+                        variant="ghost"
+
+
+                        size="icon"
+
+
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6"
+
+
+                        onClick={(e) => {
+
+
+                          e.stopPropagation();
+
+
+                          // Handle group options
+
+
+                        }}
+
+
+                      >
+
+
+                        <MoreVertical className="h-3 w-3" />
+
+
+                      </Button>
+
+
+                    </div>
+
+
+                  </div>
+
+                  
+                  
+                  <div className="flex items-center justify-between mt-1">
+
+
+                    <p className="text-xs text-muted-foreground truncate flex-1">
+
+
+                      {group.lastMessage}
+
+
+                    </p>
+
+
+                    <div className="flex items-center space-x-2 ml-2">
+
+
+                      <span className="text-xs text-muted-foreground">
+
+
+                        {group.memberCount} members
+
+
+                      </span>
+
+
+                      {group.unreadCount > 0 && (
+
+
+                        <div className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center">
+
+
+                          <span className="text-xs font-medium">
+
+
+                            {group.unreadCount > 9 ? "9+" : group.unreadCount}
+
+
+                          </span>
+
+
+                        </div>
+
+
+                      )}
+
+
+                    </div>
+
+
+                  </div>
+
+
+                </div>
+
+
+              </div>
+
+
+            ))}
+
+
+          </div>
+
+
+        )}
+
+
+      </div>
+
+
+    </div>
+
+
+  );
+
+
 }

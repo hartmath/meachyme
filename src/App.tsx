@@ -211,7 +211,10 @@ function AppContent() {
         } />
         <Route path="/groups" element={
           <ProtectedRoute>
-            <GroupChatList />
+            <>
+              <GroupChatList />
+              <BottomNavigation />
+            </>
           </ProtectedRoute>
         } />
         <Route path="/create-group" element={
