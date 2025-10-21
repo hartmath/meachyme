@@ -189,7 +189,9 @@ export default function GroupChatDetail() {
     },
     onSuccess: () => {
       setNewMessage("");
-      // Don't invalidate here - real-time subscription will handle updates
+      // Force immediate refetch of messages
+      queryClient.invalidateQueries({ queryKey: ['group-messages', id] });
+      queryClient.refetchQueries({ queryKey: ['group-messages', id] });
     },
     onError: (error) => {
       console.error('Group message error:', error);
@@ -264,8 +266,10 @@ export default function GroupChatDetail() {
   useEffect(() => {
     if (!id) return;
 
+    console.log('Setting up real-time subscription for group:', id);
+
     const channel = supabase
-      .channel('new_group_messages')
+      .channel(`new_group_messages_${id}`)
       .on(
         'postgres_changes',
         {
@@ -274,14 +278,18 @@ export default function GroupChatDetail() {
           table: 'new_group_messages',
           filter: `group_id=eq.${id}`
         },
-        () => {
+        (payload) => {
+          console.log('Real-time message received:', payload);
           // Invalidate messages query to refetch
           queryClient.invalidateQueries({ queryKey: ['group-messages', id] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [id, queryClient]);
