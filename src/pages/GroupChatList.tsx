@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Search, Users, Plus, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,30 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loading } from "@/components/Loading";
-import { useEffect } from "react";
+
+interface GroupMember {
+  group_id: string;
+}
+
+interface GroupMessage {
+  content: string;
+  created_at: string;
+  sender_id: string;
+}
+
+interface GroupDetails {
+  id: string;
+  name: string;
+  description: string;
+  avatar_url: string;
+  created_at: string;
+}
+
+interface OnlineMember {
+  profiles: {
+    is_online: boolean;
+  };
+}
 
 export default function GroupChatList() {
   const navigate = useNavigate();
@@ -34,7 +57,7 @@ export default function GroupChatList() {
       if (!userGroups || userGroups.length === 0) return [];
 
       // Get group details for each group_id
-      const groupIds = userGroups.map(ug => ug.group_id);
+      const groupIds = userGroups.map((ug: GroupMember) => ug.group_id);
       const { data: groupDetails, error: groupsError } = await supabase
         .from('new_groups')
         .select('id, name, description, avatar_url, created_at')
@@ -47,7 +70,7 @@ export default function GroupChatList() {
 
       // Get member counts and last messages for each group
       const groupsWithDetails = await Promise.all(
-        (groupDetails || []).map(async (group) => {
+        (groupDetails || []).map(async (group: GroupDetails) => {
           // Get member count
           const { count: memberCount } = await supabase
             .from('new_group_members')
@@ -69,13 +92,21 @@ export default function GroupChatList() {
 
           // Get sender name for last message
           let senderName = 'Someone';
+          let messageContent = '';
+          let messageTime = '';
+          
           if (lastMessage) {
-            const { data: senderProfile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', lastMessage.sender_id)
-              .single();
-            senderName = senderProfile?.full_name || 'Someone';
+            const msg = lastMessage as GroupMessage;
+            if (msg.sender_id) {
+              const { data: senderProfile } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', msg.sender_id)
+                .single();
+              senderName = senderProfile?.full_name || 'Someone';
+            }
+            messageContent = msg.content || '';
+            messageTime = msg.created_at || '';
           }
 
           // Get online members count
@@ -88,18 +119,18 @@ export default function GroupChatList() {
             `)
             .eq('group_id', group.id);
 
-          const isOnline = onlineMembers?.some(member => member.profiles?.is_online) || false;
+          const isOnline = onlineMembers?.some((member: OnlineMember) => member.profiles?.is_online) || false;
 
           return {
             id: group.id,
             name: group.name,
             description: group.description,
             avatar_url: group.avatar_url,
-            lastMessage: lastMessage ? 
-              `${senderName}: ${lastMessage.content}` : 
+            lastMessage: messageContent ? 
+              `${senderName}: ${messageContent}` : 
               'No messages yet',
-            timestamp: lastMessage ? 
-              new Date(lastMessage.created_at).toLocaleTimeString([], { 
+            timestamp: messageTime ? 
+              new Date(messageTime).toLocaleTimeString([], { 
                 hour: '2-digit', 
                 minute: '2-digit' 
               }) : 
