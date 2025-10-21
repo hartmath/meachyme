@@ -53,36 +53,6 @@ export default function GroupChatDetail() {
     setCurrentUserId(authUser?.id || null);
   }, [authUser?.id]);
 
-  // Fetch user profiles for messages
-  useEffect(() => {
-    if (!messages || messages.length === 0) return;
-
-    const fetchUserProfiles = async () => {
-      const senderIds = [...new Set(messages.map(m => m.sender_id))];
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', senderIds);
-
-      if (error) {
-        console.error('Error fetching user profiles:', error);
-        return;
-      }
-
-      const profileMap: Record<string, { full_name: string; avatar_url: string }> = {};
-      profiles?.forEach(profile => {
-        profileMap[profile.id] = {
-          full_name: profile.full_name || 'Unknown User',
-          avatar_url: profile.avatar_url || ''
-        };
-      });
-
-      setUserProfiles(profileMap);
-    };
-
-    fetchUserProfiles();
-  }, [messages]);
-
   // Fetch group members
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ['group-members', id],
@@ -139,6 +109,36 @@ export default function GroupChatDetail() {
     },
     enabled: !!id
   });
+
+  // Fetch user profiles for messages
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+
+    const fetchUserProfiles = async () => {
+      const senderIds = [...new Set(messages.map(m => m.sender_id))];
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', senderIds);
+
+      if (error) {
+        console.error('Error fetching user profiles:', error);
+        return;
+      }
+
+      const profileMap: Record<string, { full_name: string; avatar_url: string }> = {};
+      profiles?.forEach(profile => {
+        profileMap[profile.id] = {
+          full_name: profile.full_name || 'Unknown User',
+          avatar_url: profile.avatar_url || ''
+        };
+      });
+
+      setUserProfiles(profileMap);
+    };
+
+    fetchUserProfiles();
+  }, [messages]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
